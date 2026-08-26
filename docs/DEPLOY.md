@@ -22,8 +22,9 @@ Astro 정적 사이트를 `PUBLIC_DATA_MODE=fixture`로 빌드해 GitHub Pages�
 
 이 경로는 계산기 UI와 정제된 예시 데이터로 제품 흐름을 확인하는 공개 데모다.
 실시간 금융위원회 데이터, Worker API, D1, backfill을 연결한 운영 릴리스로 간주하지
-않는다. 프로젝트 Pages가 처음 비활성화된 저장소라면 저장소 **Settings → Pages →
-Source: GitHub Actions**를 한 번 선택한다.
+않는다. workflow의 `configure-pages`가 Pages를 자동 활성화한다. 저장소 정책상 자동
+활성화가 거부되면 저장소 **Settings → Pages → Source: GitHub Actions**를 한 번 선택한
+뒤 workflow를 다시 실행한다.
 
 ## 1. 로컬 릴리스 확인
 
