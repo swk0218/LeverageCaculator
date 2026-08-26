@@ -1,7 +1,8 @@
 ---
 import PixelAnt from './PixelAnt.astro';
+import { withSiteBase, withoutSiteBase } from '../lib/site-path';
 
-const path = Astro.url.pathname;
+const path = withoutSiteBase(Astro.url.pathname);
 const items = [
   {href: '/', label: '계산기'},
   {href: '/method', label: '계산 원리'},
@@ -12,7 +13,7 @@ const items = [
 
 <header class="site-header">
   <div class="page-shell header-inner">
-    <a class="brand pixel-label" href="/" aria-label="양복음복 홈">
+    <a class="brand pixel-label" href={withSiteBase('/')} aria-label="양복음복 홈">
       <PixelAnt size={24} />
       <span>양복음복</span>
     </a>
@@ -20,7 +21,7 @@ const items = [
       <ul>
         {items.map((item) => (
           <li>
-            <a href={item.href} aria-current={path === item.href ? 'page' : undefined}>
+            <a href={withSiteBase(item.href)} aria-current={path === item.href ? 'page' : undefined}>
               {item.label}
             </a>
           </li>

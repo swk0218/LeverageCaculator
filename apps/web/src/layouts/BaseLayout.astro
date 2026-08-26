@@ -1,6 +1,7 @@
 ---
 import SiteFooter from '../components/SiteFooter.astro';
 import SiteHeader from '../components/SiteHeader.astro';
+import { withSiteBase, withoutSiteBase } from '../lib/site-path';
 import '../styles/global.css';
 
 interface Props {
@@ -17,7 +18,7 @@ const {
   structuredData,
 } = Astro.props;
 const site = Astro.site ?? new URL('https://yangbokeumbok.example');
-const canonical = new URL(Astro.url.pathname, site);
+const canonical = new URL(withSiteBase(withoutSiteBase(Astro.url.pathname)), site);
 const isPreview = (import.meta.env.PUBLIC_DATA_MODE ?? 'fixture') === 'fixture';
 const robots = noindex || isPreview ? 'noindex,nofollow' : 'index,follow';
 const adsEnabled =

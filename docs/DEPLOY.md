@@ -1,13 +1,29 @@
 # Deployment
 
-양복음복은 `apps/web/dist`의 정적 Astro 사이트(Cloudflare Pages)와
-`apps/worker`의 Worker API + D1로 배포한다. 현재 저장소는 배포 준비가 끝난
-릴리스 후보이지만, Cloudflare 자격증명과 공공데이터 service key가 없으므로 실제
-URL은 아직 만들지 않았다.
+양복음복은 `apps/web/dist`의 정적 Astro 사이트와 `apps/worker`의 Worker API + D1로
+배포한다. 휴대폰에서 즉시 확인할 수 있도록 GitHub Pages fixture 체험판을 먼저
+공개하고, 실제 공공데이터 운영 배포는 Cloudflare 경로로 분리한다.
 
 Cloudflare의 현재 공식 절차는 [Pages Git 연동](https://developers.cloudflare.com/pages/configuration/git-integration/),
 [D1 Wrangler 명령](https://developers.cloudflare.com/d1/wrangler-commands/),
 [Worker secret](https://developers.cloudflare.com/workers/configuration/secrets/) 문서를 함께 참고한다.
+
+## 0. GitHub Pages 체험판 (휴대폰에서 바로 사용)
+
+`main`에 push하면 [`.github/workflows/pages.yml`](../.github/workflows/pages.yml)이
+Astro 정적 사이트를 `PUBLIC_DATA_MODE=fixture`로 빌드해 GitHub Pages에 배포한다.
+
+- 공개 URL: <https://swk0218.github.io/LeverageCaculator/>
+- Pages base path: `/LeverageCaculator`
+- 사이트 origin: `https://swk0218.github.io`
+- 출력 디렉터리: `apps/web/dist`
+- fixture 상품만 사용하며 화면에는 개발·미리보기 모드가 명시된다.
+- fixture 모드는 `noindex,nofollow`와 `robots.txt Disallow: /`를 유지한다.
+
+이 경로는 계산기 UI와 정제된 예시 데이터로 제품 흐름을 확인하는 공개 데모다.
+실시간 금융위원회 데이터, Worker API, D1, backfill을 연결한 운영 릴리스로 간주하지
+않는다. 프로젝트 Pages가 처음 비활성화된 저장소라면 저장소 **Settings → Pages →
+Source: GitHub Actions**를 한 번 선택한다.
 
 ## 1. 로컬 릴리스 확인
 
@@ -187,13 +203,14 @@ PUBLIC_CONSENT_READY=true
 
 ## Launch checklist
 
+- [x] GitHub Pages fixture 체험판 workflow와 공개 URL
 - [x] GitHub Actions `CI` 성공 (run #2, commit `acb29e0`)
 - [x] `pnpm verify` 성공 (로컬 및 Ubuntu CI)
 - [ ] 운영 값으로 `pnpm release:check` 성공
 - [ ] D1 migration/seed/backfill 성공
 - [ ] Worker health/products/analysis-data HTTP 200
 - [ ] 최신 기준일과 stale 상태가 실제 데이터와 일치
-- [ ] Pages canonical/robots/sitemap 정상
+- [ ] 운영 Cloudflare Pages canonical/robots/sitemap 정상
 - [ ] Pages 보안 헤더 정상, 최종 origin 기준 CSP 적용·검증
 - [ ] 390px 및 1440px 실제 URL 화면 확인
 - [ ] 브라우저 console error 0

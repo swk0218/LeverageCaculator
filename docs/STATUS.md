@@ -1,6 +1,6 @@
 # Current Status
 
-- Current milestone: P9 complete — deployment-ready, external credentials pending
+- Current milestone: P9 complete — GitHub Pages fixture preview live; production credentials pending
 - Last completed milestone: P9
 - Quick verification command: `pnpm verify:quick`
 - Full verification command: `pnpm verify`
@@ -29,10 +29,14 @@
 - [GitHub Actions CI run #2](https://github.com/swk0218/LeverageCaculator/actions/runs/32921277898)
   completed successfully for commit `acb29e0`, including the full Ubuntu verification and all 20
   Linux fixture snapshot comparisons.
+- [GitHub Pages 체험판](https://swk0218.github.io/LeverageCaculator/) is built from `main` by
+  `.github/workflows/pages.yml` with `PUBLIC_DATA_MODE=fixture` and the `/LeverageCaculator`
+  project base path. This is a public demo, not the live FSC/Worker release.
 
 ## In progress
 
-- None. No code or local validation work remains for the release candidate.
+- None for the preview path. No production code or local validation work remains for the release
+  candidate.
 
 ## Blocked only by external credentials
 
@@ -65,7 +69,7 @@
 3. Apply remote D1 migrations and seed, deploy the Worker, run the first backfill, and verify
    `/api/v1/health`, `/api/v1/products`, and a representative `/api/v1/analysis-data` response.
 4. Connect `swk0218/LeverageCaculator` to Cloudflare Pages and complete the live launch checklist in
-   `docs/DEPLOY.md`.
+   `docs/DEPLOY.md`; the GitHub Pages fixture preview can remain available for product review.
 
 ## Latest screenshots
 

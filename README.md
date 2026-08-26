@@ -4,9 +4,11 @@
 계산하는 개인정보 보호 중심 반응형 웹 도구다. 회원가입과 계좌 연동 없이 매수일,
 매수가, 수량만 입력하며 금융 입력은 브라우저 밖으로 보내지 않는다.
 
-현재 상태는 **로컬 검증을 마친 프로덕션 릴리스 후보**다. fixture 모드에서는 외부
-계정 없이 전체 흐름이 동작한다. 실제 공공데이터와 Cloudflare 배포는 service key,
-D1 UUID 및 Cloudflare 인증이 필요하며 아직 완료됐다고 주장하지 않는다.
+현재 상태는 **로컬 검증을 마친 프로덕션 릴리스 후보**다. 휴대폰에서 바로 확인할 수
+있는 [GitHub Pages 체험판](https://swk0218.github.io/LeverageCaculator/)도 fixture
+모드로 공개되어 있다. fixture 모드에서는 외부 계정 없이 전체 흐름이 동작한다. 실제
+공공데이터와 Cloudflare 배포는 service key, D1 UUID 및 Cloudflare 인증이 필요하며
+별도의 운영 릴리스로 분리한다.
 
 ## What is included
 
@@ -45,6 +47,15 @@ pnpm dev
 - Worker 실행 중 fixture scheduled sync: `pnpm data:sync:local`
 
 실제 `.env`와 `.dev.vars`는 Git에서 제외된다. 예시 값만 `.env.example`에 있다.
+
+## Phone preview
+
+- [GitHub Pages에서 바로 열기](https://swk0218.github.io/LeverageCaculator/)
+- 공개 페이지는 외부 API 키가 필요 없는 `fixture` 체험 모드다.
+- 화면에 표시되는 `[체험용]` 상품은 계산 흐름과 복리 효과를 확인하기 위한
+  정제된 예시 데이터이며, 실시간 시세나 투자 권유가 아니다.
+- 실제 금융위원회 데이터와 Worker/D1 운영 배포는 [배포 절차](docs/DEPLOY.md)의
+  Cloudflare 경로를 별도로 완료해야 한다.
 
 ## Commands
 

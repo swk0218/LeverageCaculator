@@ -16,6 +16,7 @@ export default defineConfig({
   devToolbar: { enabled: false },
   output: 'static',
   site: process.env.PUBLIC_SITE_URL || 'https://yangbokeumbok.example',
+  base: process.env.PUBLIC_BASE_PATH || undefined,
   vite: {
     resolve: {
       alias: {

@@ -1,5 +1,6 @@
 ---
 import ContentLayout from '../layouts/ContentLayout.astro';
+import { withSiteBase } from '../lib/site-path';
 ---
 
 <ContentLayout
@@ -8,5 +9,5 @@ import ContentLayout from '../layouts/ContentLayout.astro';
   noindex
 >
   <p>주소가 바뀌었거나 존재하지 않는 페이지입니다.</p>
-  <p><a href="/">계산기로 돌아가기</a></p>
+  <p><a href={withSiteBase('/')}>계산기로 돌아가기</a></p>
 </ContentLayout>
