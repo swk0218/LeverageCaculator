@@ -21,6 +21,7 @@ simulated or reported as complete.
 | `pnpm audit --audit-level high` | PASS: no known vulnerabilities                                       |
 | `pnpm release:check`            | LOCAL GATES PASS; exit 2 with ten external prerequisites             |
 | `pnpm astryx doctor`            | PASS: 6 checks, 0 warnings, 0 failures                               |
+| GitHub Actions Ubuntu CI        | PASS: run #2 at `acb29e0`; full `pnpm verify`                        |
 
 The calculation suite includes all required golden vectors (consecutive rise, rise-then-fall,
 inverse -2X, positive and negative compound effect, multiple lots, date inclusion, common analysis
@@ -107,7 +108,8 @@ GitHub Actions run #1 correctly failed when the Linux snapshots did not yet exis
 and mobile loss states were inspected against the Astryx reference and their Win32 counterparts;
 all 20 files have matching scenario names and valid native dimensions. They are now committed as
 platform-specific expectations. The API-error baseline is deliberately Win32-only because normal CI
-stays in fixture mode.
+stays in fixture mode. [GitHub Actions run #2](https://github.com/swk0218/LeverageCaculator/actions/runs/32921277898)
+then passed the entire Ubuntu job with all 20 comparisons.
 
 Fixture comparisons run normally with:
 

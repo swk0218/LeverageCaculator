@@ -26,6 +26,9 @@
 - Approved Win32 Chromium baselines cover all six required viewports and every required UI state.
   The 20 fixture-mode Linux baselines emitted by GitHub Actions run #1 were reviewed and added;
   the separate opt-in API-error baseline remains Win32-only because CI intentionally runs fixture mode.
+- [GitHub Actions CI run #2](https://github.com/swk0218/LeverageCaculator/actions/runs/32921277898)
+  completed successfully for commit `acb29e0`, including the full Ubuntu verification and all 20
+  Linux fixture snapshot comparisons.
 
 ## In progress
 

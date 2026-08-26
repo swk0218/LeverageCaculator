@@ -109,6 +109,8 @@ state and schema-validated localStorage. Worker secrets and D1 access stay serve
   credential/configuration prerequisites. Explicit fixture mode is a local failure with exit 1.
 - `pnpm astryx doctor`: 6 passed, 0 warnings, 0 failures.
 - `pnpm audit --audit-level high`: PASS, no known vulnerabilities.
+- GitHub Actions Ubuntu CI: [run #2](https://github.com/swk0218/LeverageCaculator/actions/runs/32921277898)
+  PASS for commit `acb29e0`, including full install, `pnpm verify`, and 20 Linux visual comparisons.
 
 ## Deployment
 

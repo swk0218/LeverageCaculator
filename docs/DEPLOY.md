@@ -187,8 +187,8 @@ PUBLIC_CONSENT_READY=true
 
 ## Launch checklist
 
-- [ ] GitHub Actions `CI` 성공
-- [ ] `pnpm verify` 성공
+- [x] GitHub Actions `CI` 성공 (run #2, commit `acb29e0`)
+- [x] `pnpm verify` 성공 (로컬 및 Ubuntu CI)
 - [ ] 운영 값으로 `pnpm release:check` 성공
 - [ ] D1 migration/seed/backfill 성공
 - [ ] Worker health/products/analysis-data HTTP 200
