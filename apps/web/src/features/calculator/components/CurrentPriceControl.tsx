@@ -37,8 +37,8 @@ export function CurrentPriceControl({
   return (
     <section className="current-price" aria-labelledby="current-price-heading">
       <div>
-        <p id="current-price-heading">현재가</p>
-        <strong className="tabular">
+        <h3 id="current-price-heading">현재가</h3>
+        <strong className="tabular" aria-live="polite">
           {formatWon(usingManual && displayedManual !== null ? displayedManual : officialPrice)}
         </strong>
         <span className={`price-source ${usingManual ? 'manual' : ''}`}>

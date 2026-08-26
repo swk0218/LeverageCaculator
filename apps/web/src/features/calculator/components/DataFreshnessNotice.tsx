@@ -17,6 +17,15 @@ export function DataFreshnessNotice({ mode, stale, date, mismatch = false }: Pro
           </div>
         </div>
       )}
+      {import.meta.env.PUBLIC_DATA_MODE === 'live' && !stale && !mismatch && date && (
+        <div className="data-notice live-notice" role="status">
+          <span aria-hidden="true">✓</span>
+          <div>
+            <strong>공식 데이터 연결됨</strong>
+            <p>{date.replaceAll('-', '.')} 기준 상품·기초자산 시계열을 사용합니다.</p>
+          </div>
+        </div>
+      )}
       {stale ? (
         <div className="data-notice stale-notice" role="status">
           <span aria-hidden="true">!</span>

@@ -5,7 +5,7 @@ import { withSiteBase } from '../lib/site-path';
 <footer class="site-footer">
   <div class="page-shell footer-grid">
     <div>
-      <strong class="pixel-label">양복음복</strong>
+      <strong>양복음복</strong>
       <p>레버리지의 일일 복리 구조를 차분히 풀어보는 계산 도구</p>
     </div>
     <nav aria-label="정책 메뉴">
@@ -21,10 +21,10 @@ import { withSiteBase } from '../lib/site-path';
 
 <style>
   .site-footer {
-    padding: 40px 0 32px;
-    border-top: 2px solid var(--yb-border);
-    background: var(--yb-ink);
-    color: var(--yb-surface);
+    padding: 44px 0 32px;
+    margin-top: 64px;
+    border-top: 1px solid var(--yb-border);
+    background: rgba(248, 250, 255, 0.78);
   }
 
   .footer-grid {
@@ -35,13 +35,15 @@ import { withSiteBase } from '../lib/site-path';
   }
 
   strong {
-    font-size: 20px;
+    color: var(--yb-ink);
+    font-size: 18px;
+    letter-spacing: -0.04em;
   }
 
   p {
     max-width: 420px;
     margin: 8px 0 0;
-    color: #cbc6bd;
+    color: var(--yb-muted);
     font-size: 14px;
   }
 
@@ -54,17 +56,22 @@ import { withSiteBase } from '../lib/site-path';
 
   nav a {
     min-height: 44px;
-    color: inherit;
-    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    color: var(--yb-muted);
+    font-size: 13px;
     font-weight: 700;
-    line-height: 44px;
+  }
+
+  nav a:hover {
+    color: var(--yb-accent-strong);
   }
 
   .disclaimer {
-    padding-top: 24px;
+    padding-top: 22px;
     margin-top: 24px;
-    border-top: 1px solid #4b4742;
-    color: #aaa59c;
+    border-top: 1px solid var(--yb-border);
+    color: var(--yb-muted);
     font-size: 12px;
   }
 

@@ -63,6 +63,7 @@ export function ProductSearch({ products, selectedCode, onSelect }: Props) {
             id={inputId}
             role="combobox"
             aria-autocomplete="list"
+            aria-haspopup="listbox"
             aria-controls={listId}
             aria-expanded={isOpen}
             aria-activedescendant={activeOption ? `${listId}-${activeOption.code}` : undefined}
@@ -91,6 +92,14 @@ export function ProductSearch({ products, selectedCode, onSelect }: Props) {
               } else if (event.key === 'Enter' && activeOption) {
                 event.preventDefault();
                 chooseProduct(activeOption.code);
+              } else if (event.key === 'Home' && results.length > 0) {
+                event.preventDefault();
+                setIsOpen(true);
+                setActiveIndex(0);
+              } else if (event.key === 'End' && results.length > 0) {
+                event.preventDefault();
+                setIsOpen(true);
+                setActiveIndex(results.length - 1);
               } else if (event.key === 'Escape') {
                 setIsOpen(false);
               }
@@ -105,6 +114,7 @@ export function ProductSearch({ products, selectedCode, onSelect }: Props) {
                 id={`${listId}-${product.code}`}
                 type="button"
                 role="option"
+                aria-label={`${product.name}, ${product.code}, ${product.leverage > 0 ? `플러스 ${product.leverage}배` : `마이너스 ${Math.abs(product.leverage)}배`}`}
                 aria-selected={product.code === selectedCode}
                 tabIndex={-1}
                 className={`product-option ${index === activeIndex ? 'active' : ''}`}

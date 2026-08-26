@@ -14,7 +14,10 @@ interface LiveState extends State {
   requestKey: string;
 }
 
-const API_BASE_URL = import.meta.env.PUBLIC_API_BASE_URL ?? 'http://127.0.0.1:8787';
+const API_BASE_URL = (import.meta.env.PUBLIC_API_BASE_URL ?? 'http://127.0.0.1:8787').replace(
+  /\/$/,
+  '',
+);
 
 export function useProductData(productCode: string, enabled = true, retryKey = 0): State {
   const requestKey = `${productCode}:${retryKey}`;

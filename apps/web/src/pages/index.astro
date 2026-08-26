@@ -19,8 +19,12 @@ const structuredData = {
 <BaseLayout structuredData={structuredData}>
   <section class="intro page-shell">
     <div class="calculator-shell">
-      <h1 class="pixel-label">양복음복</h1>
-      <p>레버리지 복리 계산기</p>
+      <p class="eyebrow">양복음복 · 공식 데이터 기반 계산 도구</p>
+      <h1>레버리지 복리 계산기</h1>
+      <p class="intro-lede">
+        매수 내역과 현재가를 입력하면 실제 손익, 본전 조건, 일일 복리 효과를 한 화면에서 확인할 수
+        있습니다.
+      </p>
     </div>
   </section>
 
@@ -73,31 +77,46 @@ const structuredData = {
 
 <style>
   .intro {
-    padding-top: 48px;
+    padding-top: 64px;
+  }
+
+  .intro .calculator-shell {
+    padding: 0 8px;
+  }
+
+  .eyebrow {
+    margin: 0 0 12px;
+    color: var(--yb-accent-strong);
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
   }
 
   .intro h1 {
+    max-width: 760px;
     margin: 0;
-    font-size: clamp(34px, 5vw, 52px);
+    color: var(--yb-ink);
+    font-size: clamp(36px, 6vw, 58px);
     line-height: 1.08;
+    letter-spacing: -0.06em;
   }
 
-  .intro p {
-    margin: 10px 0 0;
+  .intro-lede {
+    max-width: 620px;
+    margin: 16px 0 0;
     color: var(--yb-muted);
-    font-size: 18px;
-    font-weight: 700;
+    font-size: clamp(16px, 2vw, 19px);
   }
 
   .app-section {
-    padding-top: 28px;
+    padding-top: 32px;
   }
 
   .method-preview {
     padding: 72px 0;
-    margin-top: 72px;
-    border-block: 2px solid var(--yb-border);
-    background: var(--yb-accent);
+    margin-top: 80px;
+    border-block: 1px solid var(--yb-border);
+    background: linear-gradient(115deg, rgba(239, 246, 255, 0.9), rgba(238, 242, 255, 0.82));
   }
 
   .explainer-grid {
@@ -109,6 +128,7 @@ const structuredData = {
 
   h2 {
     margin: 0 0 16px;
+    color: var(--yb-ink);
     font-size: clamp(26px, 4vw, 38px);
     line-height: 1.25;
     letter-spacing: -0.04em;
@@ -118,7 +138,7 @@ const structuredData = {
   .faq-preview p {
     max-width: 640px;
     margin: 0;
-    color: color-mix(in srgb, var(--yb-ink) 76%, transparent);
+    color: var(--yb-muted);
   }
 
   .text-link {
@@ -126,7 +146,8 @@ const structuredData = {
     min-height: 44px;
     align-items: center;
     margin-top: 22px;
-    font-weight: 900;
+    color: var(--yb-accent-strong);
+    font-weight: 800;
     text-decoration-thickness: 2px;
     text-underline-offset: 4px;
   }
@@ -142,44 +163,47 @@ const structuredData = {
     grid-template-columns: 52px 1fr;
     gap: 16px;
     padding: 18px 0;
-    border-top: 2px solid var(--yb-border);
-    font-weight: 800;
+    border-top: 1px solid var(--yb-border-strong);
+    color: var(--yb-ink);
+    font-weight: 750;
   }
 
   .pixel-steps li:last-child {
-    border-bottom: 2px solid var(--yb-border);
+    border-bottom: 1px solid var(--yb-border-strong);
   }
 
   .pixel-steps span {
-    font-family: ui-monospace, monospace;
+    color: var(--yb-accent);
+    font-variant-numeric: tabular-nums;
   }
 
   .faq-preview {
     padding: 80px 0 24px;
   }
 
-  details {
+  .faq-preview details {
     border-top: 1px solid var(--yb-border);
   }
 
-  details:last-of-type {
+  .faq-preview details:last-of-type {
     border-bottom: 1px solid var(--yb-border);
   }
 
-  summary {
+  .faq-preview summary {
     min-height: 64px;
     padding: 18px 44px 18px 0;
-    font-weight: 850;
+    color: var(--yb-ink);
+    font-weight: 800;
     cursor: pointer;
   }
 
-  details p {
+  .faq-preview details p {
     padding: 0 0 24px;
   }
 
   @media (max-width: 760px) {
     .intro {
-      padding-top: 32px;
+      padding-top: 40px;
     }
 
     .explainer-grid {

@@ -2,147 +2,167 @@
 @import '@astryxdesign/core/astryx.css';
 @import '@astryxdesign/theme-neutral/theme.css';
 
-@layer product {
-  :root {
-    --yb-bg: #f3efe6;
-    --yb-surface: #fffdf8;
-    --yb-ink: #171411;
-    --yb-muted: #5f5a53;
-    --yb-border: #171411;
-    --yb-accent: #f3c744;
-    --yb-positive: #d83a2e;
-    --yb-negative: #315ac7;
-    --yb-neutral: #8c877f;
-    --yb-shadow: 4px 4px 0 #171411;
-    --yb-shadow-small: 2px 2px 0 #171411;
-    --yb-max: 1120px;
-    --yb-calculator: 780px;
+/* Astryx supplies the component system; these are product-level surface tokens. */
+:root {
+  --yb-bg: #f4f7fb;
+  --yb-surface: #ffffff;
+  --yb-surface-soft: #f8faff;
+  --yb-ink: #172033;
+  --yb-muted: #5d6b82;
+  --yb-border: #d8e1ed;
+  --yb-border-strong: #b9c8da;
+  --yb-accent: #4f46e5;
+  --yb-accent-strong: #3730a3;
+  --yb-positive: #087f5b;
+  --yb-negative: #c2415a;
+  --yb-neutral: #77859a;
+  --yb-info: #2563eb;
+  --yb-warning: #a16207;
+  --yb-shadow: 0 24px 70px rgba(43, 65, 104, 0.13);
+  --yb-shadow-small: 0 8px 24px rgba(43, 65, 104, 0.1);
+  --yb-max: 1120px;
+  --yb-calculator: 960px;
+  --yb-radius-container: 24px;
+  --yb-radius-panel: 18px;
+  --yb-radius-element: 12px;
 
-    --color-background-body: var(--yb-bg);
-    --color-background-surface: var(--yb-surface);
-    --color-text-primary: var(--yb-ink);
-    --color-text-secondary: var(--yb-muted);
-    --color-border: color-mix(in srgb, var(--yb-ink) 28%, transparent);
-    --color-border-emphasized: var(--yb-ink);
-    --radius-container: 4px;
-    --radius-element: 3px;
-    --radius-inner: 2px;
-    --font-family-body:
-      Pretendard, 'Noto Sans KR', 'Apple SD Gothic Neo', Inter, system-ui, sans-serif;
-  }
+  /* Astryx aliases used by its core controls. */
+  --color-background-body: var(--yb-bg);
+  --color-background-surface: var(--yb-surface);
+  --color-text-primary: var(--yb-ink);
+  --color-text-secondary: var(--yb-muted);
+  --color-border: var(--yb-border);
+  --color-border-emphasized: var(--yb-border-strong);
+  --radius-container: var(--yb-radius-container);
+  --radius-element: var(--yb-radius-element);
+  --radius-inner: 10px;
+  --font-family-body:
+    Inter, Pretendard, 'Noto Sans KR', 'Apple SD Gothic Neo', system-ui, sans-serif;
+}
 
-  * {
-    box-sizing: border-box;
-  }
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
 
-  html {
-    min-width: 320px;
-    background: var(--yb-bg);
-    color: var(--yb-ink);
-    scroll-behavior: smooth;
-  }
+html {
+  min-width: 320px;
+  background: var(--yb-bg);
+  color: var(--yb-ink);
+  scroll-behavior: smooth;
+}
 
-  body {
-    margin: 0;
-    min-width: 320px;
-    min-height: 100vh;
-    overflow-x: hidden;
-    font-family: var(--font-family-body);
-    font-size: 16px;
-    line-height: 1.6;
-    background-color: var(--yb-bg);
-    background-image:
-      linear-gradient(rgba(23, 20, 17, 0.028) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(23, 20, 17, 0.028) 1px, transparent 1px);
-    background-size: 16px 16px;
-  }
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  overflow-x: hidden;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(191, 219, 254, 0.52), transparent 33rem),
+    radial-gradient(circle at 93% 16%, rgba(224, 231, 255, 0.68), transparent 30rem), var(--yb-bg);
+  color: var(--yb-ink);
+  font-family: var(--font-family-body);
+  font-size: 16px;
+  line-height: 1.6;
+}
 
-  button,
-  input,
-  select,
-  textarea {
-    font: inherit;
-  }
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
 
-  button,
-  a {
-    -webkit-tap-highlight-color: transparent;
-  }
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
 
-  :focus-visible {
-    outline: 3px solid var(--yb-negative);
-    outline-offset: 3px;
-  }
+button:not(:disabled),
+a,
+summary,
+label {
+  touch-action: manipulation;
+}
 
-  a {
-    color: inherit;
-  }
+:focus-visible {
+  outline: 3px solid var(--yb-accent);
+  outline-offset: 3px;
+}
 
-  .skip-link {
-    position: fixed;
-    z-index: 1000;
-    top: 8px;
-    left: 8px;
-    transform: translateY(-160%);
-    padding: 10px 14px;
-    border: 2px solid var(--yb-border);
-    background: var(--yb-accent);
-    font-weight: 800;
-  }
+a {
+  color: inherit;
+}
 
-  .skip-link:focus {
-    transform: translateY(0);
-  }
+.skip-link {
+  position: fixed;
+  z-index: 1000;
+  top: 8px;
+  left: 8px;
+  transform: translateY(-160%);
+  padding: 10px 14px;
+  border: 2px solid var(--yb-accent-strong);
+  border-radius: 10px;
+  background: #ffffff;
+  color: var(--yb-accent-strong);
+  font-weight: 800;
+  box-shadow: var(--yb-shadow-small);
+}
 
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+.page-shell {
+  width: min(calc(100% - 40px), var(--yb-max));
+  margin: 0 auto;
+}
+
+.calculator-shell {
+  width: min(100%, var(--yb-calculator));
+  margin: 0 auto;
+}
+
+.pixel-label {
+  /* Compatibility class for existing page copy; no pixel/game treatment. */
+  font-family: inherit;
+  letter-spacing: -0.04em;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 479px) {
   .page-shell {
-    width: min(calc(100% - 32px), var(--yb-max));
-    margin: 0 auto;
+    width: min(calc(100% - 28px), var(--yb-max));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
   }
 
-  .calculator-shell {
-    width: min(100%, var(--yb-calculator));
-    margin: 0 auto;
-  }
-
-  .pixel-label {
-    font-family: ui-monospace, 'Cascadia Mono', 'SFMono-Regular', Consolas, monospace;
-    letter-spacing: -0.04em;
-  }
-
-  .tabular {
-    font-variant-numeric: tabular-nums;
-  }
-
-  .sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
-  }
-
-  @media (max-width: 479px) {
-    .page-shell {
-      width: min(calc(100% - 24px), var(--yb-max));
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    html {
-      scroll-behavior: auto;
-    }
-
-    *,
-    *::before,
-    *::after {
-      scroll-behavior: auto !important;
-      animation-duration: 0.01ms !important;
-      animation-iteration-count: 1 !important;
-      transition-duration: 0.01ms !important;
-    }
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

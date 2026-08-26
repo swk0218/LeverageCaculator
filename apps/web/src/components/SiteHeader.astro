@@ -1,23 +1,23 @@
 ---
-import PixelAnt from './PixelAnt.astro';
 import { withSiteBase, withoutSiteBase } from '../lib/site-path';
 
 const path = withoutSiteBase(Astro.url.pathname);
 const items = [
-  {href: '/', label: '계산기'},
-  {href: '/method', label: '계산 원리'},
-  {href: '/products', label: '지원 상품'},
-  {href: '/faq', label: 'FAQ'},
+  { href: '/', label: '계산기' },
+  { href: '/method', label: '계산 원리' },
+  { href: '/products', label: '지원 상품' },
+  { href: '/faq', label: 'FAQ' },
 ];
 ---
 
 <header class="site-header">
   <div class="page-shell header-inner">
-    <a class="brand pixel-label" href={withSiteBase('/')} aria-label="양복음복 홈">
-      <PixelAnt size={24} />
-      <span>양복음복</span>
+    <a class="brand" href={withSiteBase('/')} aria-label="양복음복 홈">
+      <span class="brand-mark" aria-hidden="true">YB</span>
+      <span class="brand-name">양복음복</span>
     </a>
-    <nav aria-label="주요 메뉴">
+
+    <nav class="desktop-nav" aria-label="주요 메뉴">
       <ul>
         {items.map((item) => (
           <li>
@@ -28,18 +28,42 @@ const items = [
         ))}
       </ul>
     </nav>
+
+    <details class="mobile-nav">
+      <summary aria-label="메뉴 열기">
+        <span aria-hidden="true">메뉴</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 7h16M4 12h16M4 17h16" />
+        </svg>
+      </summary>
+      <nav aria-label="모바일 주요 메뉴">
+        <ul>
+          {items.map((item) => (
+            <li>
+              <a href={withSiteBase(item.href)} aria-current={path === item.href ? 'page' : undefined}>
+                {item.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+    </details>
   </div>
 </header>
 
 <style>
   .site-header {
-    border-bottom: 2px solid var(--yb-border);
-    background: color-mix(in srgb, var(--yb-surface) 94%, transparent);
+    position: sticky;
+    z-index: 30;
+    top: 0;
+    border-bottom: 1px solid rgba(185, 200, 218, 0.82);
+    background: rgba(248, 251, 255, 0.8);
+    backdrop-filter: blur(18px);
   }
 
   .header-inner {
     display: flex;
-    min-height: 64px;
+    min-height: 72px;
     align-items: center;
     justify-content: space-between;
     gap: 24px;
@@ -49,15 +73,34 @@ const items = [
     display: inline-flex;
     min-height: 44px;
     align-items: center;
-    gap: 9px;
+    gap: 10px;
     color: var(--yb-ink);
-    font-size: 19px;
-    font-weight: 900;
     text-decoration: none;
     white-space: nowrap;
   }
 
-  nav ul {
+  .brand-mark {
+    display: grid;
+    width: 34px;
+    height: 34px;
+    place-items: center;
+    border: 1px solid #c4cdf8;
+    border-radius: 12px;
+    background: linear-gradient(145deg, #eef2ff, #dbeafe);
+    color: var(--yb-accent-strong);
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: -0.08em;
+  }
+
+  .brand-name {
+    font-size: 18px;
+    font-weight: 850;
+    letter-spacing: -0.04em;
+  }
+
+  .desktop-nav ul,
+  .mobile-nav ul {
     display: flex;
     align-items: center;
     gap: 4px;
@@ -66,36 +109,96 @@ const items = [
     list-style: none;
   }
 
-  nav a {
+  .desktop-nav a,
+  .mobile-nav a {
     display: inline-flex;
     min-height: 44px;
     align-items: center;
     padding: 0 12px;
+    border-radius: 10px;
     color: var(--yb-muted);
     font-size: 14px;
     font-weight: 700;
     text-decoration: none;
   }
 
-  nav a:hover,
-  nav a[aria-current='page'] {
+  .desktop-nav a:hover,
+  .desktop-nav a[aria-current='page'],
+  .mobile-nav a:hover,
+  .mobile-nav a[aria-current='page'] {
+    background: #eef2ff;
+    color: var(--yb-accent-strong);
+  }
+
+  .mobile-nav {
+    display: none;
+    position: relative;
+  }
+
+  .mobile-nav summary {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    gap: 8px;
+    padding: 0 10px;
+    border: 1px solid var(--yb-border);
+    border-radius: 10px;
+    background: #ffffff;
     color: var(--yb-ink);
-    text-decoration: underline;
-    text-decoration-thickness: 2px;
-    text-underline-offset: 5px;
+    font-size: 13px;
+    font-weight: 750;
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .mobile-nav summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .mobile-nav summary svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+  }
+
+  .mobile-nav[open] summary {
+    border-color: var(--yb-accent);
+    color: var(--yb-accent-strong);
+  }
+
+  .mobile-nav nav {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    width: min(260px, calc(100vw - 28px));
+    padding: 8px;
+    border: 1px solid var(--yb-border);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: var(--yb-shadow-small);
+  }
+
+  .mobile-nav ul {
+    display: grid;
+  }
+
+  .mobile-nav a {
+    width: 100%;
   }
 
   @media (max-width: 680px) {
     .header-inner {
-      min-height: 56px;
+      min-height: 64px;
     }
 
-    nav li:not(:first-child) {
+    .desktop-nav {
       display: none;
     }
 
-    nav a {
-      padding-right: 0;
+    .mobile-nav {
+      display: block;
     }
   }
 </style>

@@ -25,7 +25,7 @@ export const purchases = {
 export async function gotoCalculator(page: Page): Promise<void> {
   await page.goto('/');
   await expect(page).toHaveTitle(/양복음복/);
-  await expect(page.getByRole('heading', { level: 1, name: '양복음복' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: '레버리지 복리 계산기' })).toBeVisible();
   await expect(page.getByTestId('calculator-root')).toHaveAttribute('data-hydrated', 'true', {
     timeout: 15_000,
   });

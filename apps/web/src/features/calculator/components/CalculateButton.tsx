@@ -18,6 +18,9 @@ export function CalculateButton({ disabled, onCalculate }: Props) {
       <Button
         label="계산하기"
         variant="primary"
+        size="lg"
+        width="100%"
+        type="button"
         isDisabled={disabled}
         onClick={onCalculate}
         aria-describedby={helpId}
