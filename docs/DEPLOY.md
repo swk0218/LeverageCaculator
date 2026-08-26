@@ -66,7 +66,8 @@ CI에서 토큰을 쓰는 경우 로컬 로그인 대신 최소 권한 `CLOUDFLA
 
 ## 3. 공공데이터 키와 Worker secret
 
-공공데이터포털에서 아래 금융위원회 API 세 건을 활용 신청한다.
+공공데이터포털에서 아래 금융위원회 API 세 건을 활용 신청한다. 발급 화면과
+로컬 smoke test는 [실제 API 키 발급·연결 가이드](./API-SETUP.md)에 모아 두었다.
 
 - [주식시세정보](https://www.data.go.kr/data/15094808/openapi.do)
 - [증권상품시세정보](https://www.data.go.kr/data/15094806/openapi.do)

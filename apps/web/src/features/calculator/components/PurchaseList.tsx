@@ -24,7 +24,7 @@ export function PurchaseList({
     <section className="calculator-section" aria-labelledby="purchase-heading">
       <div className="section-heading-row">
         <div>
-          <p className="section-step pixel-label" aria-hidden="true">
+          <p className="section-step section-label" aria-hidden="true">
             02
           </p>
           <h2 id="purchase-heading">매수내역</h2>

@@ -300,6 +300,19 @@ export function CalculatorApp() {
           <div className="calculator-section error-state" role="alert">
             <h2>가격 데이터를 불러오지 못했습니다.</h2>
             <p>{dataError}</p>
+            {PRODUCT_DATA_MODE === 'live' && (
+              <p className="error-support">
+                Worker URL과 서비스키 설정을 확인해 주세요.{' '}
+                <a
+                  className="api-link"
+                  href="https://www.data.go.kr/data/15094808/openapi.do"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  공식 API 활용신청 안내
+                </a>
+              </p>
+            )}
             <button
               type="button"
               className="outline-button"

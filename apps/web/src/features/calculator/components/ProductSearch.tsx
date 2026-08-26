@@ -44,7 +44,7 @@ export function ProductSearch({ products, selectedCode, onSelect }: Props) {
     <section className="calculator-section product-section" aria-labelledby="product-heading">
       <div className="section-heading-row">
         <div>
-          <p className="section-step pixel-label" aria-hidden="true">
+          <p className="section-step section-label" aria-hidden="true">
             01
           </p>
           <h2 id="product-heading">상품</h2>

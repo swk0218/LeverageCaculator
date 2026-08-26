@@ -56,8 +56,8 @@ const items = [
     position: sticky;
     z-index: 30;
     top: 0;
-    border-bottom: 1px solid rgba(185, 200, 218, 0.82);
-    background: rgba(248, 251, 255, 0.8);
+    border-bottom: 1px solid var(--yb-border);
+    background: rgba(255, 255, 255, 0.84);
     backdrop-filter: blur(18px);
   }
 
@@ -84,9 +84,9 @@ const items = [
     width: 34px;
     height: 34px;
     place-items: center;
-    border: 1px solid #c4cdf8;
+    border: 1px solid var(--yb-border-strong);
     border-radius: 12px;
-    background: linear-gradient(145deg, #eef2ff, #dbeafe);
+    background: var(--yb-accent-soft);
     color: var(--yb-accent-strong);
     font-size: 10px;
     font-weight: 900;
@@ -126,7 +126,7 @@ const items = [
   .desktop-nav a[aria-current='page'],
   .mobile-nav a:hover,
   .mobile-nav a[aria-current='page'] {
-    background: #eef2ff;
+    background: var(--yb-accent-soft);
     color: var(--yb-accent-strong);
   }
 
@@ -176,7 +176,7 @@ const items = [
     padding: 8px;
     border: 1px solid var(--yb-border);
     border-radius: 16px;
-    background: rgba(255, 255, 255, 0.96);
+    background: rgba(255, 255, 255, 0.98);
     box-shadow: var(--yb-shadow-small);
   }
 

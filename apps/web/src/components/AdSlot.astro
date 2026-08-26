@@ -12,9 +12,15 @@ const slot =
     ? import.meta.env.PUBLIC_AD_SLOT_RESULT
     : import.meta.env.PUBLIC_AD_SLOT_CONTENT;
 const isEnabled = Boolean(client && slot && consentReady && dataMode === 'live');
+const label = placement === 'result' ? '계산 결과 광고' : '콘텐츠 광고';
 ---
 
-<aside class={`ad-slot ad-slot--${placement}`} aria-label="광고">
+<aside
+  class={`ad-slot ad-slot--${placement}`}
+  aria-label={label}
+  data-ad-placement={placement}
+  data-ad-state={isEnabled ? 'enabled' : 'preview'}
+>
   {
     isEnabled ? (
       <ins
@@ -43,6 +49,7 @@ const isEnabled = Boolean(client && slot && consentReady && dataMode === 'live')
   .ad-slot {
     width: 100%;
     min-height: 112px;
+    contain: layout paint;
   }
 
   .ad-slot--result {
@@ -57,8 +64,8 @@ const isEnabled = Boolean(client && slot && consentReady && dataMode === 'live')
     display: grid;
     min-height: 112px;
     place-items: center;
-    border: 1px dashed color-mix(in srgb, var(--yb-muted) 55%, transparent);
-    background: color-mix(in srgb, var(--yb-surface) 60%, transparent);
+    border: 1px dashed color-mix(in srgb, var(--yb-muted) 42%, var(--yb-border));
+    background: color-mix(in srgb, var(--yb-surface) 78%, var(--yb-bg));
     color: var(--yb-muted);
     font-size: 12px;
     letter-spacing: 0.08em;

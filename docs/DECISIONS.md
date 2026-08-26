@@ -6,7 +6,7 @@ Use a pnpm workspace with Astro static pages, one React calculator island, a sta
 
 ## 2026-08-26 — Astryx design system
 
-Use Meta's MIT-licensed Astryx 0.5.0 packages with React 19 and its neutral theme. The later user instruction supersedes the earlier preference to avoid a UI framework. Astryx owns accessible controls and structural tokens; a small local theme layer adds the requested warm pixel-art character without forking Astryx.
+Use Meta's MIT-licensed Astryx 0.5.0 packages with React 19 and its neutral theme. The later user instruction supersedes the earlier preference to avoid a UI framework. Astryx owns accessible controls and structural tokens; a small local theme layer adds the requested bright, minimal glass surfaces without forking Astryx. The earlier game/pixel direction is retired.
 
 The framework-free financial package is stored in `packages/calculation-core` while retaining the package name `@yangbok/core`. Astryx 0.5.0 deliberately treats a repository path named `packages/core` as Astryx's own source package; avoiding that path keeps `pnpm astryx doctor` and component contract lookup accurate without patching vendor code.
 

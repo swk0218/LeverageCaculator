@@ -105,6 +105,7 @@ key로 정확한 기초지수 시계열을 실제 대조하기 전까지 모두 
 
 - [계산 명세](docs/CALCULATION.md)
 - [공식 데이터와 product master](docs/DATA.md)
+- [실제 API 키 발급·연결 가이드](docs/API-SETUP.md)
 - [설계 결정](docs/DECISIONS.md)
 - [QA 증거](docs/QA.md)
 - [배포 절차](docs/DEPLOY.md)

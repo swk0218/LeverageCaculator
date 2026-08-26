@@ -4,22 +4,28 @@
 
 /* Astryx supplies the component system; these are product-level surface tokens. */
 :root {
-  --yb-bg: #f4f7fb;
+  --yb-bg: #f6f7f9;
   --yb-surface: #ffffff;
-  --yb-surface-soft: #f8faff;
-  --yb-ink: #172033;
-  --yb-muted: #5d6b82;
-  --yb-border: #d8e1ed;
-  --yb-border-strong: #b9c8da;
-  --yb-accent: #4f46e5;
-  --yb-accent-strong: #3730a3;
-  --yb-positive: #087f5b;
-  --yb-negative: #c2415a;
-  --yb-neutral: #77859a;
-  --yb-info: #2563eb;
-  --yb-warning: #a16207;
-  --yb-shadow: 0 24px 70px rgba(43, 65, 104, 0.13);
-  --yb-shadow-small: 0 8px 24px rgba(43, 65, 104, 0.1);
+  --yb-surface-soft: #fafbfc;
+  --yb-ink: #1d232c;
+  --yb-muted: #5f6b7a;
+  --yb-border: #e4e7ec;
+  --yb-border-strong: #cbd2dc;
+  --yb-accent: #3158a8;
+  --yb-accent-strong: #23417d;
+  --yb-accent-soft: #eef2f8;
+  --yb-accent-wash: #f4f6f9;
+  --yb-positive: #137a59;
+  --yb-positive-soft: #eaf6f0;
+  --yb-negative: #b83b4b;
+  --yb-negative-soft: #fbf0f2;
+  --yb-neutral: #667085;
+  --yb-info: #2f6da5;
+  --yb-info-soft: #eff5fb;
+  --yb-warning: #8a6200;
+  --yb-warning-soft: #fbf5e8;
+  --yb-shadow: 0 22px 60px rgba(16, 24, 40, 0.09);
+  --yb-shadow-small: 0 8px 24px rgba(16, 24, 40, 0.08);
   --yb-max: 1120px;
   --yb-calculator: 960px;
   --yb-radius-container: 24px;
@@ -58,9 +64,7 @@ body {
   min-height: 100vh;
   margin: 0;
   overflow-x: hidden;
-  background:
-    radial-gradient(circle at 8% 0%, rgba(191, 219, 254, 0.52), transparent 33rem),
-    radial-gradient(circle at 93% 16%, rgba(224, 231, 255, 0.68), transparent 30rem), var(--yb-bg);
+  background: var(--yb-bg);
   color: var(--yb-ink);
   font-family: var(--font-family-body);
   font-size: 16px;
@@ -124,8 +128,8 @@ a {
   margin: 0 auto;
 }
 
-.pixel-label {
-  /* Compatibility class for existing page copy; no pixel/game treatment. */
+.section-label {
+  /* Compact step labels keep the hierarchy clear without decorative game styling. */
   font-family: inherit;
   letter-spacing: -0.04em;
 }

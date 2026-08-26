@@ -79,18 +79,18 @@ implementation pairs reviewed at native sizes are:
 
 Five-point fidelity assessment:
 
-1. Warm neutral canvas, clean high contrast, and calm surface hierarchy follow the accepted Astryx
+1. Bright neutral canvas, clean high contrast, and calm surface hierarchy follow the accepted Astryx
    character.
 2. Astryx reset, neutral theme, Button component, tokens, focus behavior, and spacing form the UI
    foundation rather than a look-alike component library.
-3. Black flat controls and a restrained accent preserve the reference's decisive action hierarchy.
+3. Graphite controls and a restrained steel-blue accent preserve the decisive action hierarchy.
 4. Strong typography and generous section whitespace keep dense financial information legible.
 5. Responsive stacking, explicit labels, visible focus, semantic signs, and reduced-motion support
    preserve clarity from 360px through 1440px.
 
-Intentional product deviations are the Korean pixel-ant identity, crisp one-to-two-pixel borders and
-small hard shadows, compact calculator-first density instead of a marketing hero, and red/blue
-financial semantics reinforced by signs and sentences. No Astryx marketing copy was reused; all
+Intentional product deviations are the Korean wordmark, soft glass surfaces, compact calculator-first
+density instead of a marketing hero, and green/red financial semantics reinforced by signs and
+sentences. No Astryx marketing copy was reused; all
 product copy is original Korean written for the calculator.
 
 ## Approved visual baselines

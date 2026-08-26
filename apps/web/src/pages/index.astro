@@ -46,7 +46,7 @@ const structuredData = {
         </p>
         <a class="text-link" href={withSiteBase('/method')}>계산 방식과 공식 보기</a>
       </div>
-      <ol class="pixel-steps">
+      <ol class="method-steps">
         <li><span>01</span> 매수분마다 출발일을 나눕니다.</li>
         <li><span>02</span> 기초자산의 일간 수익률을 적용합니다.</li>
         <li><span>03</span> 단순 배수와 일일 복리의 차이를 합칩니다.</li>
@@ -116,7 +116,7 @@ const structuredData = {
     padding: 72px 0;
     margin-top: 80px;
     border-block: 1px solid var(--yb-border);
-    background: linear-gradient(115deg, rgba(239, 246, 255, 0.9), rgba(238, 242, 255, 0.82));
+    background: var(--yb-accent-wash);
   }
 
   .explainer-grid {
@@ -152,13 +152,13 @@ const structuredData = {
     text-underline-offset: 4px;
   }
 
-  .pixel-steps {
+  .method-steps {
     padding: 0;
     margin: 0;
     list-style: none;
   }
 
-  .pixel-steps li {
+  .method-steps li {
     display: grid;
     grid-template-columns: 52px 1fr;
     gap: 16px;
@@ -168,11 +168,11 @@ const structuredData = {
     font-weight: 750;
   }
 
-  .pixel-steps li:last-child {
+  .method-steps li:last-child {
     border-bottom: 1px solid var(--yb-border-strong);
   }
 
-  .pixel-steps span {
+  .method-steps span {
     color: var(--yb-accent);
     font-variant-numeric: tabular-nums;
   }
