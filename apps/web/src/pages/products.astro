@@ -1,0 +1,83 @@
+---
+import {PRODUCT_MASTER} from '@yangbok/contracts';
+
+import ContentLayout from '../layouts/ContentLayout.astro';
+
+const typeLabel = {
+  stock: '현물 주식',
+  'spot-index': '현물 지수',
+  'futures-index': '선물 지수',
+};
+---
+
+<ContentLayout
+  title="지원 상품과 데이터 기준"
+  description="양복음복이 확인한 국내 상장 단일종목 레버리지·인버스 ETF/ETN과 공식 데이터 기준을 안내합니다."
+  intro="상품 수보다 매핑 정확도를 우선합니다. 상품명만 보고 배수나 기초자산을 추정하지 않습니다."
+>
+  <p class="notice">
+    아래 상품은 2026년 8월 26일 기준 공식 상품 자료로 식별한 목록입니다. 공공데이터 실제 응답으로
+    기초지수 시계열까지 확인하기 전에는 보수적으로 ‘실제 손익만’ 제공합니다. 복리분석을 억지로
+    활성화하지 않습니다.
+  </p>
+
+  <h2>확인된 상품</h2>
+  <div class="content-table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>종목코드</th>
+          <th>상품명</th>
+          <th>배수</th>
+          <th>유형</th>
+          <th>기초자산</th>
+          <th>분석 범위</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          PRODUCT_MASTER.map((product) => (
+            <tr>
+              <td class="tabular">{product.code}</td>
+              <td>
+                <a href={product.verification.evidenceUrl} target="_blank" rel="noreferrer">
+                  {product.name}
+                </a>
+              </td>
+              <td>{product.leverage > 0 ? `+${product.leverage}X` : `${product.leverage}X`}</td>
+              <td>
+                {product.productType} · {typeLabel[product.underlyingType]}
+              </td>
+              <td>{product.underlyingName}</td>
+              <td>{product.analysisCapability === 'full' ? '전체 분석' : '실제 손익만'}</td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <h2>공식 데이터 흐름</h2>
+  <p class="formula">
+    금융위원회 공공데이터 API → Cloudflare Worker 정기 수집 → D1 저장 → 양복음복 웹 API → 브라우저
+  </p>
+  <p>
+    브라우저는 공공데이터 service key를 보유하거나 외부 API를 직접 호출하지 않습니다. Worker는 최근
+    7영업일을 다시 조회해 지연 갱신을 보정하고, 같은 자산·거래일은 upsert합니다. 빈 응답이나 형식이
+    잘못된 응답으로 기존 정상 데이터를 삭제하지 않습니다.
+  </p>
+
+  <h2>가격 기준일과 지연 표시</h2>
+  <p>
+    현재가는 최신 공식 상품 종가와 기준일을 함께 표시합니다. 상품과 기초자산의 날짜가 다르면 두
+    시계열이 모두 존재하는 최신 공통 거래일까지 복리분석합니다. 2영업일 이상 오래된 데이터는 화면에서
+    지연 상태로 표시합니다.
+  </p>
+
+  <h2>Fixture 모드</h2>
+  <p>
+    개발·미리보기 환경에서는 외부 키 없이 정상 +2X, -2X, 오래된 데이터, 기준일 불일치와 부분 분석
+    흐름을 확인할 수 있는 검증용 데이터를 사용합니다. 체험용 상품명과 모드 표시를 명확히 노출하며,
+    production release check는 fixture 빌드를 허용하지 않습니다.
+  </p>
+</ContentLayout>

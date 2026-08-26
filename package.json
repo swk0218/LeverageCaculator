@@ -1,0 +1,59 @@
+{
+  "name": "yangbok-eumbok",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.19.0",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "astryx": {
+    "theme": "neutral"
+  },
+  "scripts": {
+    "astryx": "node node_modules/@astryxdesign/cli/clients/cli/bin/astryx.mjs",
+    "dev": "pnpm --parallel --filter @yangbok/web --filter @yangbok/worker dev",
+    "dev:web": "pnpm --filter @yangbok/web exec astro dev --host 127.0.0.1",
+    "dev:worker": "pnpm --filter @yangbok/worker dev",
+    "build": "pnpm -r --workspace-concurrency=1 --if-present build",
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "pnpm -r --workspace-concurrency=1 --if-present typecheck",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:core": "vitest run packages/calculation-core",
+    "test:contracts": "vitest run packages/contracts",
+    "test:integration": "pnpm --filter @yangbok/worker test:runtime",
+    "test:e2e": "playwright test --grep-invert @visual",
+    "test:a11y": "playwright test --grep @a11y",
+    "test:visual": "playwright test --grep @visual",
+    "verify:quick": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test:core && pnpm test:contracts",
+    "verify": "pnpm verify:quick && pnpm test && pnpm test:integration && pnpm build && pnpm test:e2e && pnpm test:a11y && pnpm test:visual",
+    "release:check": "node scripts/release-check.mjs",
+    "db:migrate:local": "pnpm --filter @yangbok/worker db:migrate:local",
+    "data:seed": "pnpm --filter @yangbok/worker data:seed",
+    "data:sync:local": "pnpm --filter @yangbok/worker data:sync:local"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.11.0",
+    "@astryxdesign/cli": "0.5.0",
+    "@astryxdesign/core": "0.5.0",
+    "@astryxdesign/theme-neutral": "0.5.0",
+    "@stylexjs/stylex": "^0.19.0",
+    "@eslint/js": "^9.39.1",
+    "@playwright/test": "1.62.1",
+    "@types/node": "^24.10.1",
+    "@vitest/coverage-v8": "4.1.11",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "fast-check": "^4.3.0",
+    "globals": "^16.5.0",
+    "jsonc-parser": "3.3.1",
+    "prettier": "^3.7.4",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.48.1",
+    "vitest": "4.1.11"
+  }
+}

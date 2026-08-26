@@ -1,0 +1,50 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "yangbok-eumbok-api-fixture-dev",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-25",
+  "vars": {
+    "DATA_MODE": "fixture",
+    "PUBLIC_SITE_URL": "http://localhost:4321",
+    "ALLOWED_ORIGINS": "http://localhost:4321,http://127.0.0.1:4321",
+    "UPSTREAM_TIMEOUT_MS": "5000",
+    "UPSTREAM_MAX_RETRIES": "2",
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "yangbok-eumbok",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations",
+    },
+  ],
+  "triggers": {
+    "crons": ["30 5 * * 1-5"],
+  },
+  "observability": {
+    "enabled": false,
+  },
+  "env": {
+    "production": {
+      "name": "yangbok-eumbok-api",
+      "vars": {
+        "DATA_MODE": "live",
+        "PUBLIC_SITE_URL": "https://replace-me.example.invalid",
+        "ALLOWED_ORIGINS": "https://replace-me.example.invalid",
+        "UPSTREAM_TIMEOUT_MS": "5000",
+        "UPSTREAM_MAX_RETRIES": "2",
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "yangbok-eumbok",
+          "database_id": "00000000-0000-0000-0000-000000000000",
+          "migrations_dir": "migrations",
+        },
+      ],
+      "secrets": {
+        "required": ["DATA_GO_KR_SERVICE_KEY", "BACKFILL_TOKEN"],
+      },
+    },
+  },
+}

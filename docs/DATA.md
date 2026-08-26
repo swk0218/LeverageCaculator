@@ -1,0 +1,35 @@
+# Data Sources and Quality
+
+Production uses Financial Services Commission public-data APIs through the Worker. Browser code never receives the service key and never calls the upstream provider directly. The adapter validates and normalizes responses before D1 upserts; empty or malformed responses never delete stored good rows.
+
+Fixture mode is deterministic and visibly labeled. It covers +2X, -2X, fresh, stale, mismatched dates, actual-only products, empty responses, malformed responses, and missing dates. Verified live operation names and mappings are documented alongside the adapter.
+
+## Official upstream contracts
+
+The adapter was checked against the Financial Services Commission documentation published on the Korean Public Data Portal on 2026-08-26:
+
+| Dataset                                                                                 | Service path                      | Operations used                                          | Exact response fields consumed                                                |
+| --------------------------------------------------------------------------------------- | --------------------------------- | -------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| [Stock security price information](https://www.data.go.kr/data/15094808/openapi.do)     | `GetStockSecuritiesInfoService`   | `getStockPriceInfo`                                      | `basDt`, `srtnCd`, `itmsNm`, `clpr`, optional `mkp`, `hipr`, `lopr`, `trqu`   |
+| [Securities product price information](https://www.data.go.kr/data/15094806/openapi.do) | `GetSecuritiesProductInfoService` | `getETFPriceInfo`, `getETNPriceInfo`                     | common price fields plus the documented `bssIdxIdxNm` and `bssIdxClpr` fields |
+| [Market index information](https://www.data.go.kr/data/15094807/openapi.do)             | `GetMarketIndexInfoService`       | `getStockMarketIndex`, `getDerivationProductMarketIndex` | `basDt`, `idxNm`, `clpr`, optional `mkp`, `hipr`, `lopr`, `trqu`              |
+
+Requests send only the documented `serviceKey`, `resultType=json`, `numOfRows`, `pageNo`, `beginBasDt`, `endBasDt`, and the dataset-specific code/name filter. The official date contract treats `endBasDt` as an exclusive upper bound, so the adapter converts the app's inclusive `to` date to the following calendar day. It then exact-matches the returned code or index name to prevent a `like` filter from admitting a different instrument.
+
+The upstream service is daily, not intraday. Stock and index pages state that data is updated after 13:00 on the next business day. The app therefore schedules weekday ingestion at 14:30 KST (`05:30 UTC`) and re-requests a rolling ten-calendar-day window. D1 upserts on `(asset_id, trade_date)`, making repeated runs idempotent. A valid empty response (`totalCount = 0`) records an empty sync but preserves the previous cache. Malformed, authentication, timeout, and provider errors fail the sync and also preserve the previous cache.
+
+## Product master and analysis capability
+
+The production master contains only entries supported by an official issuer notice, KRX KIND product page, or issuer product page. Codes are stored as the six-character short code returned in `srtnCd`. The current production entries are deliberately `actual-only`: their existence and product metadata are verified, but a service-key-backed capture has not yet proved an exact, non-double-levered underlying series mapping. Until that proof exists, the synthetic D1 asset rows are labeled `product-master-unverified-series`; this is catalog lineage, not a claim that an underlying price series was verified. Fixture products expose `full` capability so +2X, -2X, and both positive and negative compound-effect paths remain testable.
+
+## Runtime modes and credentials
+
+- `DATA_MODE=fixture` is the safe default and requires no network credential.
+- `DATA_MODE=live` requires the Worker secret `DATA_GO_KR_SERVICE_KEY`; never put it in `wrangler.jsonc`, `.env`, or `.dev.vars` committed to source control.
+- `BACKFILL_TOKEN` protects `POST /api/v1/admin/backfill?from=YYYY-MM-DD&to=YYYY-MM-DD`.
+- `PUBLIC_SITE_URL` and `ALLOWED_ORIGINS` form the exact CORS allowlist. Wildcard CORS is not used.
+- Data is marked stale once the latest product price is at least two weekdays behind the current Seoul date. This is intentionally conservative and does not attempt to infer Korean exchange holidays.
+
+The live adapter's operation names and field schemas are documentation-verified. End-to-end live payload validation remains credential-dependent; an invalid-key probe correctly returned the Public Data Portal `SERVICE_KEY_IS_NOT_REGISTERED_ERROR` envelope and no production data was fabricated from it.
+
+For local D1 setup, run `pnpm db:migrate:local`, then `pnpm data:seed`. With `pnpm dev:worker` running, `pnpm data:sync:local` invokes the scheduled rolling sync. An explicit range can be backfilled without a request body by setting `BACKFILL_TOKEN` in the command environment and running `pnpm --filter @yangbok/worker data:backfill:local -- --from=YYYY-MM-DD --to=YYYY-MM-DD`. Before a remote deployment, create the D1 database, replace the placeholder `database_id` in `wrangler.jsonc`, apply migrations with `--remote`, configure the exact production origins, set `DATA_MODE=live`, and add both secrets with `wrangler secret put`.

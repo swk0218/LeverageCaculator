@@ -1,0 +1,113 @@
+export type ISODate = string;
+
+export interface Purchase {
+  id: string;
+  date: ISODate;
+  priceWon: number;
+  quantity: number;
+}
+
+export interface Product {
+  code: string;
+  name: string;
+  productType: 'ETF' | 'ETN';
+  leverage: number;
+  underlyingId: string;
+  underlyingName: string;
+  underlyingType: 'stock' | 'spot-index' | 'futures-index';
+  listedDate: ISODate;
+  analysisCapability: 'full' | 'actual-only';
+  active: boolean;
+}
+
+export interface PricePoint {
+  date: ISODate;
+  close: number;
+}
+
+export interface AnalysisInput {
+  product: Product;
+  purchases: Purchase[];
+  currentProductPrice: number;
+  productSeries: PricePoint[];
+  underlyingSeries: PricePoint[];
+}
+
+export interface PurchaseSummary {
+  totalCostWon: number;
+  totalQuantity: number;
+  averagePriceWon: number;
+}
+
+export interface ActualPerformance extends PurchaseSummary {
+  currentValueWon: number;
+  actualPnlWon: number;
+  actualReturn: number;
+}
+
+export interface BreakEvenScenario {
+  tradingDays: number;
+  isPossible: boolean;
+  dailyUnderlyingReturn?: number;
+  cumulativeUnderlyingReturn?: number;
+  verificationProductMultiplier?: number;
+  targetUnderlyingPrice?: number;
+  reason?: string;
+}
+
+export interface LotTheoryResult {
+  purchaseId: string;
+  purchaseDate: ISODate;
+  analysisDate: ISODate;
+  principalWon: number;
+  startUnderlyingPrice: number;
+  endUnderlyingPrice: number;
+  underlyingPeriodReturn: number;
+  simpleTheoreticalReturn: number;
+  dailyTheoreticalReturn: number;
+  simpleTheoreticalPnlWon: number;
+  dailyTheoreticalPnlWon: number;
+  compoundEffectWon: number;
+}
+
+export type AnalysisCoverage = 'full' | 'partial' | 'unavailable';
+
+export interface AnalysisResult extends ActualPerformance {
+  productBreakEvenReturn: number;
+  breakEvenScenarios: BreakEvenScenario[];
+  simpleTheoreticalPnlWon?: number;
+  dailyTheoreticalPnlWon?: number;
+  compoundEffectWon?: number;
+  compoundEffectRate?: number;
+  theoreticalActualGapWon?: number;
+  analysisDate?: ISODate;
+  warnings: string[];
+  analysisCoverage: AnalysisCoverage;
+  analyzedCostWon?: number;
+  analyzedQuantity?: number;
+  analysisCoverageRate?: number;
+  simpleTheoreticalReturn?: number;
+  dailyTheoreticalReturn?: number;
+  officialAnalysisPnlWon?: number;
+  officialAnalysisReturn?: number;
+  theoreticalActualGapRate?: number;
+  analyzedPurchaseIds: string[];
+  excludedPurchaseIds: string[];
+  lotTheory: LotTheoryResult[];
+}
+
+export interface ValidationIssue {
+  code: string;
+  path: string;
+  message: string;
+}
+
+export interface PurchaseDateValidationOptions {
+  listedDate?: ISODate;
+  today?: ISODate;
+  availableDates?: ReadonlySet<ISODate> | readonly ISODate[];
+}
+
+export interface PurchaseValidationOptions extends PurchaseDateValidationOptions {
+  index?: number;
+}

@@ -1,0 +1,66 @@
+---
+interface Props {
+  placement: 'result' | 'content';
+}
+
+const {placement} = Astro.props;
+const client = import.meta.env.PUBLIC_ADSENSE_CLIENT;
+const consentReady = import.meta.env.PUBLIC_CONSENT_READY === 'true';
+const dataMode = import.meta.env.PUBLIC_DATA_MODE ?? 'fixture';
+const slot =
+  placement === 'result'
+    ? import.meta.env.PUBLIC_AD_SLOT_RESULT
+    : import.meta.env.PUBLIC_AD_SLOT_CONTENT;
+const isEnabled = Boolean(client && slot && consentReady && dataMode === 'live');
+---
+
+<aside class={`ad-slot ad-slot--${placement}`} aria-label="광고">
+  {
+    isEnabled ? (
+      <ins
+        class="adsbygoogle"
+        style="display:block"
+        data-ad-client={client}
+        data-ad-slot={slot}
+        data-ad-format="auto"
+        data-full-width-responsive="true"
+      />
+    ) : (
+      <div class="ad-placeholder"><span>광고 영역</span></div>
+    )
+  }
+</aside>
+{
+  isEnabled && (
+    <script
+      is:inline
+      set:html="(window.adsbygoogle = window.adsbygoogle || []).push({});"
+    />
+  )
+}
+
+<style>
+  .ad-slot {
+    width: 100%;
+    min-height: 112px;
+  }
+
+  .ad-slot--result {
+    margin-top: 72px;
+  }
+
+  .ad-slot--content {
+    margin: 64px 0;
+  }
+
+  .ad-placeholder {
+    display: grid;
+    min-height: 112px;
+    place-items: center;
+    border: 1px dashed color-mix(in srgb, var(--yb-muted) 55%, transparent);
+    background: color-mix(in srgb, var(--yb-surface) 60%, transparent);
+    color: var(--yb-muted);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+  }
+</style>

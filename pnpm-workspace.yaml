@@ -1,0 +1,26 @@
+packages:
+  - apps/*
+  - packages/*
+
+allowBuilds:
+  '@astryxdesign/cli': true
+  '@astryxdesign/core': true
+  esbuild: true
+  workerd: true
+
+minimumReleaseAgeExclude:
+  - astro@7.2.7
+  - '@cloudflare/vitest-plugin@1.1.0'
+  - '@cloudflare/workerd-darwin-64@1.20260825.1'
+  - '@cloudflare/workerd-darwin-arm64@1.20260825.1'
+  - '@cloudflare/workerd-linux-64@1.20260825.1'
+  - '@cloudflare/workerd-linux-arm64@1.20260825.1'
+  - '@cloudflare/workerd-windows-64@1.20260825.1'
+  - '@cloudflare/workers-types@5.20260825.1'
+  - miniflare@5.20260825.0-alpha
+  - workerd@1.20260825.1
+  - wrangler@4.126.0
+
+onlyBuiltDependencies:
+  - esbuild
+  - workerd

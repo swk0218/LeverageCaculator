@@ -1,0 +1,77 @@
+<footer class="site-footer">
+  <div class="page-shell footer-grid">
+    <div>
+      <strong class="pixel-label">양복음복</strong>
+      <p>레버리지의 일일 복리 구조를 차분히 풀어보는 계산 도구</p>
+    </div>
+    <nav aria-label="정책 메뉴">
+      <a href="/privacy">개인정보처리방침</a>
+      <a href="/terms">이용약관</a>
+      <a href="/disclaimer">투자 관련 고지</a>
+    </nav>
+  </div>
+  <div class="page-shell disclaimer">
+    본 서비스는 과거 가격 데이터를 이용한 계산 도구이며 투자 권유나 수익 예측을 제공하지 않습니다.
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    padding: 40px 0 32px;
+    border-top: 2px solid var(--yb-border);
+    background: var(--yb-ink);
+    color: var(--yb-surface);
+  }
+
+  .footer-grid {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 32px;
+  }
+
+  strong {
+    font-size: 20px;
+  }
+
+  p {
+    max-width: 420px;
+    margin: 8px 0 0;
+    color: #cbc6bd;
+    font-size: 14px;
+  }
+
+  nav {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px 20px;
+  }
+
+  nav a {
+    min-height: 44px;
+    color: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 44px;
+  }
+
+  .disclaimer {
+    padding-top: 24px;
+    margin-top: 24px;
+    border-top: 1px solid #4b4742;
+    color: #aaa59c;
+    font-size: 12px;
+  }
+
+  @media (max-width: 680px) {
+    .footer-grid {
+      display: block;
+    }
+
+    nav {
+      justify-content: flex-start;
+      margin-top: 20px;
+    }
+  }
+</style>

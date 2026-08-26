@@ -1,0 +1,100 @@
+---
+import PixelAnt from './PixelAnt.astro';
+
+const path = Astro.url.pathname;
+const items = [
+  {href: '/', label: '계산기'},
+  {href: '/method', label: '계산 원리'},
+  {href: '/products', label: '지원 상품'},
+  {href: '/faq', label: 'FAQ'},
+];
+---
+
+<header class="site-header">
+  <div class="page-shell header-inner">
+    <a class="brand pixel-label" href="/" aria-label="양복음복 홈">
+      <PixelAnt size={24} />
+      <span>양복음복</span>
+    </a>
+    <nav aria-label="주요 메뉴">
+      <ul>
+        {items.map((item) => (
+          <li>
+            <a href={item.href} aria-current={path === item.href ? 'page' : undefined}>
+              {item.label}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<style>
+  .site-header {
+    border-bottom: 2px solid var(--yb-border);
+    background: color-mix(in srgb, var(--yb-surface) 94%, transparent);
+  }
+
+  .header-inner {
+    display: flex;
+    min-height: 64px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+  }
+
+  .brand {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    gap: 9px;
+    color: var(--yb-ink);
+    font-size: 19px;
+    font-weight: 900;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  nav ul {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+  }
+
+  nav a {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    padding: 0 12px;
+    color: var(--yb-muted);
+    font-size: 14px;
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  nav a:hover,
+  nav a[aria-current='page'] {
+    color: var(--yb-ink);
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 5px;
+  }
+
+  @media (max-width: 680px) {
+    .header-inner {
+      min-height: 56px;
+    }
+
+    nav li:not(:first-child) {
+      display: none;
+    }
+
+    nav a {
+      padding-right: 0;
+    }
+  }
+</style>

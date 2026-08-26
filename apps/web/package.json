@@ -1,0 +1,37 @@
+{
+  "name": "@yangbok/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "astryx": {
+    "theme": "neutral"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro check && astro build",
+    "preview": "astro preview",
+    "typecheck": "astro check",
+    "test": "vitest run --root ../.. apps/web/src"
+  },
+  "dependencies": {
+    "@astrojs/react": "6.0.4",
+    "@astryxdesign/core": "0.5.0",
+    "@astryxdesign/theme-neutral": "0.5.0",
+    "@stylexjs/stylex": "^0.19.0",
+    "@yangbok/contracts": "workspace:*",
+    "@yangbok/core": "workspace:*",
+    "astro": "7.2.7",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@astrojs/check": "0.9.10",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "axe-core": "^4.11.0",
+    "jsdom": "^27.2.0"
+  }
+}

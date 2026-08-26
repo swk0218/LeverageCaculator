@@ -1,0 +1,27 @@
+{
+  "name": "@yangbok/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --local --test-scheduled",
+    "build": "wrangler deploy --dry-run --outdir dist --env=\"\"",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p test/runtime/tsconfig.json --noEmit",
+    "test": "vitest run --root ../.. --config vitest.config.ts apps/worker/test/app.test.ts",
+    "test:runtime": "vitest run --config vitest.config.ts",
+    "db:migrate:local": "wrangler d1 migrations apply DB --local",
+    "data:seed": "wrangler d1 execute DB --local --file=./seed.sql",
+    "data:sync:local": "node ./scripts/sync-local.mjs",
+    "data:backfill:local": "node ./scripts/backfill-local.mjs"
+  },
+  "dependencies": {
+    "@yangbok/contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "1.1.0",
+    "@cloudflare/workers-types": "5.20260825.1",
+    "typescript": "^5.9.3",
+    "vitest": "4.1.11",
+    "wrangler": "4.126.0"
+  }
+}
