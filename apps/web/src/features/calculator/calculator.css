@@ -995,17 +995,6 @@
   color: var(--yb-muted);
 }
 
-.error-state .error-support {
-  margin-top: 10px;
-  font-size: 12px;
-}
-
-.error-state .api-link {
-  color: var(--yb-accent-strong);
-  font-weight: 800;
-  text-underline-offset: 3px;
-}
-
 .error-state .outline-button {
   min-height: 44px;
   margin-top: 16px;
