@@ -69,10 +69,12 @@ error responses.
 Accepted reference: the public Meta Astryx design-system landing experience, preserved at
 `C:/Users/swk02/.codex/visualizations/2026/08/25/01a03b23-4840-7f33-a871-72cdbf582414/astryx-reference-1440.png`.
 The reference and implementation captures were both inspected with the local image viewer. The
-implementation pair reviewed at native sizes is:
+implementation pairs reviewed at native sizes are:
 
 - `tests/e2e/visual.spec.ts-snapshots/initial-1440-chromium-win32.png`
 - `tests/e2e/visual.spec.ts-snapshots/loss-result-390-chromium-win32.png`
+- `tests/e2e/visual.spec.ts-snapshots/initial-1440-chromium-linux.png`
+- `tests/e2e/visual.spec.ts-snapshots/loss-result-390-chromium-linux.png`
 
 Five-point fidelity assessment:
 
@@ -92,12 +94,20 @@ product copy is original Korean written for the calculator.
 
 ## Approved visual baselines
 
-`tests/e2e/visual.spec.ts-snapshots/` contains 21 reviewed Win32 Chromium PNGs:
+`tests/e2e/visual.spec.ts-snapshots/` contains 21 reviewed Win32 Chromium PNGs and 20 reviewed
+Linux Chromium PNGs:
 
 - initial at all six required viewports;
 - three-purchase, loss, profit, inverse, manual-price, stale-data, and partial-analysis at 390px and
   1440px;
 - the explicit live API-error state at 390px.
+
+GitHub Actions run #1 correctly failed when the Linux snapshots did not yet exist and uploaded its
+20 generated fixture snapshots plus traces as `playwright-linux-evidence`. The Linux desktop initial
+and mobile loss states were inspected against the Astryx reference and their Win32 counterparts;
+all 20 files have matching scenario names and valid native dimensions. They are now committed as
+platform-specific expectations. The API-error baseline is deliberately Win32-only because normal CI
+stays in fixture mode.
 
 Fixture comparisons run normally with:
 

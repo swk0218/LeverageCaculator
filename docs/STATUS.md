@@ -24,6 +24,8 @@
 - Browser privacy checks confirm that purchase dates, prices, quantities, averages, P/L, returns,
   and manually entered prices are not sent in URL, request body, beacon, analytics, or ad traffic.
 - Approved Win32 Chromium baselines cover all six required viewports and every required UI state.
+  The 20 fixture-mode Linux baselines emitted by GitHub Actions run #1 were reviewed and added;
+  the separate opt-in API-error baseline remains Win32-only because CI intentionally runs fixture mode.
 
 ## In progress
 

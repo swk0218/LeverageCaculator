@@ -67,7 +67,7 @@ state and schema-validated localStorage. Worker secrets and D1 access stay serve
 - E2E: 13/13 non-visual scenarios PASS against a fresh production-static build.
 - Accessibility: 2/2 PASS; serious/critical axe violations 0; keyboard-only calculation PASS.
 - Visual regression: 20/20 fixture comparisons PASS; one separate opt-in live API-error comparison
-  PASS; 21 reviewed Win32 Chromium baselines.
+  PASS; 21 reviewed Win32 Chromium baselines and 20 reviewed Linux Chromium fixture baselines.
 - Console: captured application errors 0.
 - Browser tooling: native Codex Browser invocation failed at its trusted local bridge; Playwright
   Chromium was used as the production-rendered fallback and this limitation is kept explicit.
