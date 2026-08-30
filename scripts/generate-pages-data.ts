@@ -17,6 +17,7 @@ import {
   type Product,
   type ProviderProductData,
 } from '../packages/contracts/src/index';
+import { nodeHttpsFetch } from './node-https-fetch';
 
 export const DEFAULT_PAGES_DATA_OUTPUT_DIR = 'apps/web/public/data/analysis';
 export const EXPECTED_ACTIVE_PRODUCT_COUNT = 18;
@@ -395,7 +396,11 @@ export async function runPagesDataExport(
 
   const provider =
     options.providerFactory?.(serviceKey) ??
-    new LiveFscMarketDataProvider({ serviceKey, ...PAGES_UPSTREAM_POLICY });
+    new LiveFscMarketDataProvider({
+      serviceKey,
+      ...PAGES_UPSTREAM_POLICY,
+      fetch: nodeHttpsFetch,
+    });
   if (provider.mode !== 'live') throw new StaticDataExportError('LIVE_PROVIDER_REQUIRED');
 
   const generatedAt = options.now ?? new Date();

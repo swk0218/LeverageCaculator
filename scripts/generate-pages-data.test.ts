@@ -23,6 +23,7 @@ import {
   latestEligibleCloseDate,
   runPagesDataExport,
 } from './generate-pages-data';
+import { nodeHttpsFetch } from './node-https-fetch';
 
 const temporaryRoots: string[] = [];
 const VALID_SERVICE_KEY = 'A1b2C3d4E5f6G7h8I9j0K%2BLmN%3D';
@@ -78,6 +79,15 @@ function mockLiveProvider(
 }
 
 describe('GitHub Pages market-data export', () => {
+  it('rejects insecure and non-GET requests before opening a Node socket', async () => {
+    await expect(nodeHttpsFetch('http://apis.data.go.kr/example')).rejects.toMatchObject({
+      code: 'UPSTREAM_HTTPS_REQUIRED',
+    });
+    await expect(
+      nodeHttpsFetch('https://apis.data.go.kr/example', { method: 'POST' }),
+    ).rejects.toMatchObject({ code: 'UPSTREAM_GET_REQUIRED' });
+  });
+
   it('uses a batch-safe upstream timeout without changing the Worker request policy', () => {
     expect(PAGES_UPSTREAM_POLICY).toEqual({
       timeoutMs: 20_000,
