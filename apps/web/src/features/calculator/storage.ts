@@ -1,6 +1,7 @@
 import type { PurchaseDraft, StoredCalculatorState } from './types';
 
 export const STORAGE_KEY = 'yangbok-eumbok:calculator';
+export const STORAGE_TTL_MS = 30 * 24 * 60 * 60 * 1_000;
 
 const ISO_DATE_OR_EMPTY = /^(?:|\d{4}-\d{2}-\d{2})$/u;
 const PRODUCT_CODE = /^[0-9A-Z]{6}$/u;
@@ -28,7 +29,10 @@ const isDraft = (value: unknown): value is PurchaseDraft => {
   );
 };
 
-export const parseStoredState = (raw: string | null): StoredCalculatorState | null => {
+export const parseStoredState = (
+  raw: string | null,
+  now = Date.now(),
+): StoredCalculatorState | null => {
   if (!raw) return null;
 
   try {
@@ -36,7 +40,15 @@ export const parseStoredState = (raw: string | null): StoredCalculatorState | nu
     if (!value || typeof value !== 'object') return null;
     const state = value as Record<string, unknown>;
     if (
-      state.version !== 1 ||
+      state.version !== 2 ||
+      state.persistInputs !== true ||
+      typeof state.savedAt !== 'number' ||
+      !Number.isSafeInteger(state.savedAt) ||
+      typeof state.expiresAt !== 'number' ||
+      !Number.isSafeInteger(state.expiresAt) ||
+      state.savedAt <= 0 ||
+      state.expiresAt !== state.savedAt + STORAGE_TTL_MS ||
+      state.expiresAt <= now ||
       typeof state.productCode !== 'string' ||
       !PRODUCT_CODE.test(state.productCode) ||
       !Array.isArray(state.purchases) ||
@@ -56,15 +68,22 @@ export const parseStoredState = (raw: string | null): StoredCalculatorState | nu
 
 export const loadState = (): StoredCalculatorState | null => {
   try {
-    return parseStoredState(localStorage.getItem(STORAGE_KEY));
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const parsed = parseStoredState(raw);
+    if (raw && !parsed) localStorage.removeItem(STORAGE_KEY);
+    return parsed;
   } catch {
     return null;
   }
 };
 
-export const saveState = (state: StoredCalculatorState): void => {
+export const saveState = (state: Omit<StoredCalculatorState, 'savedAt' | 'expiresAt'>): void => {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    const savedAt = Date.now();
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ ...state, savedAt, expiresAt: savedAt + STORAGE_TTL_MS }),
+    );
   } catch {
     // A blocked or full localStorage must not block calculation.
   }

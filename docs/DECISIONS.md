@@ -1,5 +1,22 @@
 # Engineering Decisions
 
+## 2026-08-30 — GitHub Pages official-data release
+
+Use GitHub Pages plus a scheduled GitHub Actions static export as the default live-data release.
+The repository Secret is scoped only to the export step; the browser receives schema-validated public
+price JSON and never the credential. Export all 18 active products as one atomic release and abort
+before Pages upload if any product is missing, empty, mismatched, or malformed. Keep the Worker/D1
+implementation as an optional request-time API rather than a production prerequisite.
+
+Run automatic collection at 15:40 KST (`06:40 UTC`) on weekdays, ten minutes after the KRX close.
+Never infer a trade date from the schedule or generation timestamp: the UI and release evidence use
+the provider's actual `basDt`. A provider lag therefore appears as an older/stale reference date,
+not a fabricated same-day close.
+
+Push and manual workflows may run at other times. Before 15:40 KST on a weekday, the static exporter
+caps its request at the previous weekday; weekend runs cap at Friday. This prevents an unscheduled
+deployment from making an open trading session eligible.
+
 ## 2026-08-26 — Workspace architecture
 
 Use a pnpm workspace with Astro static pages, one React calculator island, a standalone Cloudflare Worker, D1 migrations, and framework-free core/contracts packages. This follows the product specification and keeps private position calculations client-only.
@@ -33,3 +50,34 @@ credentials/configuration return exit 2, and only a fully supplied live release 
 requires canonical HTTPS origins, matching build/Worker site origins, strong non-placeholder
 credentials, distinct environment identities, the production cron, both Worker secrets, and a
 non-nil production D1 UUID.
+
+## 2026-08-26 — Completion-audit product hierarchy
+
+Keep one visible calculator path: product, current purchase lots, current price, calculate, then
+results. Remove numbered/game decoration, developer setup language, inactive ad placeholders,
+misleading empty zeroes, and repeated unsupported results. Full-analysis fixtures may show the full
+comparison, while an `actual-only` product renders only actual return and product break-even plus one
+scope explanation. This preserves useful capability differences without making an unsupported
+feature look broken.
+
+Position persistence is explicit opt-in, limited to the current browser, and expires after 30 days.
+Product changes and destructive reset ask for confirmation when populated data would be lost.
+Manual current price uses a separate draft and Apply/Cancel step so unfinished typing cannot silently
+change an existing result.
+
+The submit control remains keyboard-operable when fields are incomplete or invalid. A disabled
+button cannot explain what is missing; submission now exposes field-specific errors and moves focus
+to the first problem. The only row has no redundant delete action, while multiple rows retain an
+individual remove control with predictable focus recovery.
+
+## 2026-08-26 — Fail-closed series and ingestion integrity
+
+A compound lot is analyzable only when every expected product trading date in its range has a matching
+underlying point. Missing intermediate dates produce partial/unavailable analysis instead of
+compressing the path. FSC normalization rejects records outside the requested range.
+
+Scheduled ingestion uses settled provider outcomes: partial failures and unexpected empty results are
+recorded and surfaced as failures, while successful data is preserved. Health evaluates active-product
+coverage and the latest sync state rather than treating one recent global date as sufficient. D1 writes
+remain bounded batches; cross-batch atomicity is not claimed, so any partial run is exposed rather than
+reported green.

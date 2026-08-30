@@ -224,9 +224,17 @@ function normalizePrice(item: PriceLike): MarketPricePoint {
   };
 }
 
-function sortAndRejectDuplicateDates(points: MarketPricePoint[]): MarketPricePoint[] {
+function sortAndValidateDates(points: MarketPricePoint[], range: DataRange): MarketPricePoint[] {
   const sorted = [...points].sort((left, right) => left.date.localeCompare(right.date));
-  for (let index = 1; index < sorted.length; index += 1) {
+  for (let index = 0; index < sorted.length; index += 1) {
+    const point = sorted[index];
+    if (point !== undefined && (point.date < range.from || point.date > range.to)) {
+      throw new FscProviderError(
+        'OUT_OF_RANGE_TRADE_DATE',
+        '공식 데이터에 요청 범위를 벗어난 거래일이 있습니다.',
+        false,
+      );
+    }
     if (sorted[index]?.date === sorted[index - 1]?.date) {
       throw new FscProviderError(
         'DUPLICATE_TRADE_DATE',
@@ -318,7 +326,7 @@ export class LiveFscMarketDataProvider implements MarketDataProvider {
     };
     return {
       asset,
-      prices: sortAndRejectDuplicateDates(exact.map(normalizePrice)),
+      prices: sortAndValidateDates(exact.map(normalizePrice), range),
       upstreamTotalCount: exact.length,
     };
   }
@@ -334,7 +342,7 @@ export class LiveFscMarketDataProvider implements MarketDataProvider {
       const exact = items.filter((item) => item.srtnCd === product.underlyingId);
       return {
         asset: this.underlyingAsset(product, 'fsc-stock'),
-        prices: sortAndRejectDuplicateDates(exact.map(normalizePrice)),
+        prices: sortAndValidateDates(exact.map(normalizePrice), range),
         upstreamTotalCount: exact.length,
       };
     }
@@ -352,7 +360,7 @@ export class LiveFscMarketDataProvider implements MarketDataProvider {
     const exact = items.filter((item) => item.idxNm === product.underlyingName);
     return {
       asset: this.underlyingAsset(product, 'fsc-market-index'),
-      prices: sortAndRejectDuplicateDates(exact.map(normalizePrice)),
+      prices: sortAndValidateDates(exact.map(normalizePrice), range),
       upstreamTotalCount: exact.length,
     };
   }

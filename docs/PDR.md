@@ -1,6 +1,6 @@
 # Product Design Requirements
 
-The primary task begins immediately below a compact header; there is no marketing hero. The information order is product selection, purchase rows, live purchase summary, current-price control, calculate action, four key results, detailed comparison, methodology, FAQ, ads, and footer.
+The primary task begins immediately below a compact header; there is no marketing hero. The information order is product selection, purchase rows, live purchase summary, opt-in device storage, current-price control, calculate action, valid key results, detailed comparison when supported, methodology, FAQ, ads, and footer. Unsupported analysis is explained once rather than repeated as empty result cards.
 
 Astryx neutral supplies accessible React controls and baseline tokens. Local overrides use a bright
 neutral canvas, near-black graphite ink, a restrained steel-blue action accent, semantic green/red

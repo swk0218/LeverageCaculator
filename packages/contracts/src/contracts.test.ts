@@ -1,10 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+  AnalysisDataResponseSchema,
   FSC_API_SPECS,
   FscEtfItemSchema,
   FscProviderError,
   FixtureMarketDataProvider,
+  HealthResponseSchema,
   LiveFscMarketDataProvider,
   PRODUCT_MASTER,
   PriceSeriesSchema,
@@ -73,6 +75,121 @@ describe('runtime contracts', () => {
     );
     expect(getFixtureProductData('FACT01')?.product.analysisCapability).toBe('actual-only');
   });
+
+  it('accepts every intentional fixture state as a complete analysis response', () => {
+    for (const data of fixtureCatalog) {
+      expect(
+        AnalysisDataResponseSchema.parse({
+          data,
+          meta: { mode: 'fixture', generatedAt: '2026-08-26T05:30:00.000Z' },
+        }).data,
+      ).toEqual(data);
+    }
+  });
+
+  it('rejects a latest product value that is not the product-series tail', () => {
+    const data = getFixtureProductData('F2UP01')!;
+    const result = AnalysisDataResponseSchema.safeParse({
+      data: {
+        ...data,
+        latest: {
+          ...data.latest,
+          product: { ...data.latest.product, close: data.latest.product.close + 1 },
+        },
+      },
+      meta: { mode: 'fixture', generatedAt: '2026-08-26T05:30:00.000Z' },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects a latest underlying value that is not the underlying-series tail', () => {
+    const data = getFixtureProductData('F2UP01')!;
+    const result = AnalysisDataResponseSchema.safeParse({
+      data: {
+        ...data,
+        latest: {
+          ...data.latest,
+          underlying: {
+            ...data.latest.underlying!,
+            close: data.latest.underlying!.close + 1,
+          },
+        },
+      },
+      meta: { mode: 'fixture', generatedAt: '2026-08-26T05:30:00.000Z' },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects freshness metadata whose as-of date differs from the latest product date', () => {
+    const data = getFixtureProductData('F2UP01')!;
+    const result = AnalysisDataResponseSchema.safeParse({
+      data: { ...data, stale: { ...data.stale, asOf: '2026-08-24' } },
+      meta: { mode: 'fixture', generatedAt: '2026-08-26T05:30:00.000Z' },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects an analysis date that is not the last date common to both series', () => {
+    const data = getFixtureProductData('FMIS01')!;
+    const result = AnalysisDataResponseSchema.safeParse({
+      data: { ...data, latest: { ...data.latest, analysisDate: '2026-08-25' } },
+      meta: { mode: 'fixture', generatedAt: '2026-08-26T05:30:00.000Z' },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects an actual-only response containing an unverified underlying series', () => {
+    const data = getFixtureProductData('FACT01')!;
+    const underlying = { date: '2026-08-25' as const, close: 100 };
+    const result = AnalysisDataResponseSchema.safeParse({
+      data: {
+        ...data,
+        underlyingSeries: [underlying],
+        latest: { ...data.latest, underlying, analysisDate: underlying.date },
+      },
+      meta: { mode: 'fixture', generatedAt: '2026-08-26T05:30:00.000Z' },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('accepts and validates the additive health coverage and sync fields', () => {
+    const health = {
+      status: 'degraded',
+      mode: 'live',
+      database: 'ok',
+      latestTradeDate: '2026-08-25',
+      stale: true,
+      checkedAt: '2026-08-26T06:00:00.000Z',
+      coverage: {
+        activeProducts: 3,
+        freshProducts: 1,
+        staleProducts: 1,
+        missingProducts: 1,
+        complete: false,
+      },
+      lastSync: {
+        state: 'partial',
+        startedAt: '2026-08-26T05:30:00.000Z',
+        finishedAt: '2026-08-26T05:30:01.000Z',
+        latestTradeDate: '2026-08-25',
+        recordCount: 4,
+      },
+    } as const;
+
+    expect(HealthResponseSchema.parse(health)).toEqual(health);
+    expect(
+      HealthResponseSchema.safeParse({
+        ...health,
+        coverage: { ...health.coverage, activeProducts: 4 },
+      }).success,
+    ).toBe(false);
+    expect(
+      HealthResponseSchema.safeParse({
+        ...health,
+        lastSync: { ...health.lastSync, state: 'unknown' },
+      }).success,
+    ).toBe(false);
+  });
 });
 
 describe('stale detection', () => {
@@ -85,6 +202,13 @@ describe('stale detection', () => {
       businessDaysBehind: 2,
       isStale: true,
     });
+  });
+
+  it('describes fixture staleness as weekday-based rather than exchange-business-day based', () => {
+    expect(getFixtureProductData('FSTL01')?.warnings).toContain(
+      '공식 가격 기준일이 평일 기준 2일 이상 지연되었습니다.',
+    );
+    expect(getFixtureProductData('FSTL01')?.warnings.join(' ')).not.toContain('영업일');
   });
 });
 
@@ -177,6 +301,97 @@ describe('providers', () => {
     });
     expect(result.productSeries.prices).toEqual([{ date: '2026-08-25', close: 12_345 }]);
     expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    ['before the requested start', '20260823'],
+    ['after the requested end', '20260826'],
+  ])('fails closed on a normalized trade date %s', async (_label, basDt) => {
+    const fetchMock = vi.fn(() =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({
+            response: {
+              header: { resultCode: '00', resultMsg: 'NORMAL SERVICE.' },
+              body: {
+                numOfRows: 1,
+                pageNo: 1,
+                totalCount: 1,
+                items: {
+                  item: {
+                    basDt,
+                    srtnCd: '0195R0',
+                    itmsNm: 'TIGER 삼성전자단일종목레버리지',
+                    clpr: '12345',
+                  },
+                },
+              },
+            },
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        ),
+      ),
+    );
+    const provider = new LiveFscMarketDataProvider({
+      serviceKey: 'not-a-real-key',
+      fetch: fetchMock,
+    });
+    const product = toProduct(PRODUCT_MASTER.find(({ code }) => code === '0195R0')!);
+
+    await expect(
+      provider.fetchProductData(product, { from: '2026-08-24', to: '2026-08-25' }),
+    ).rejects.toMatchObject({ code: 'OUT_OF_RANGE_TRADE_DATE', retryable: false });
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it('applies the requested range invariant to the normalized underlying series too', async () => {
+    const fetchMock = vi.fn((input: string | URL | Request) => {
+      const url = new URL(
+        typeof input === 'string' ? input : input instanceof URL ? input.href : input.url,
+      );
+      const isProduct = url.pathname.endsWith('/getETFPriceInfo');
+      const item = isProduct
+        ? {
+            basDt: '20260825',
+            srtnCd: 'F2UP01',
+            itmsNm: '[체험용] 반도체 대표주 레버리지 2X',
+            clpr: '10355',
+          }
+        : {
+            basDt: '20260826',
+            srtnCd: 'FIXBASEUP',
+            itmsNm: '[체험용] 반도체 대표주',
+            clpr: '101.8',
+          };
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            response: {
+              header: { resultCode: '00', resultMsg: 'NORMAL SERVICE.' },
+              body: {
+                numOfRows: 1,
+                pageNo: 1,
+                totalCount: 1,
+                items: { item },
+              },
+            },
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        ),
+      );
+    });
+    const provider = new LiveFscMarketDataProvider({
+      serviceKey: 'not-a-real-key',
+      fetch: fetchMock,
+    });
+
+    await expect(
+      provider.fetchProductData(getFixtureProductData('F2UP01')!.product, {
+        from: '2026-08-24',
+        to: '2026-08-25',
+      }),
+    ).rejects.toMatchObject({ code: 'OUT_OF_RANGE_TRADE_DATE', retryable: false });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it('retries transient HTTP errors with a bounded retry count', async () => {

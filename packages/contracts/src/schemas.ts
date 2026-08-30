@@ -74,11 +74,74 @@ export const ProductDataBundleSchema = z
       })
       .strict(),
     stale: StaleStatusSchema,
-    source: z.enum(['fixture', 'database']),
+    source: z.enum(['fixture', 'database', 'static-export']),
     fetchedAt: z.iso.datetime({ offset: true }),
     warnings: z.array(z.string()),
   })
-  .strict();
+  .strict()
+  .superRefine((bundle, context) => {
+    const latestProduct = bundle.productSeries.at(-1);
+    if (
+      latestProduct === undefined ||
+      latestProduct.date !== bundle.latest.product.date ||
+      latestProduct.close !== bundle.latest.product.close
+    ) {
+      context.addIssue({
+        code: 'custom',
+        message: 'latest.product는 상품 시계열의 마지막 값과 같아야 합니다.',
+        path: ['latest', 'product'],
+      });
+    }
+
+    const latestUnderlying = bundle.underlyingSeries.at(-1);
+    if (
+      (latestUnderlying === undefined && bundle.latest.underlying !== undefined) ||
+      (latestUnderlying !== undefined &&
+        (bundle.latest.underlying === undefined ||
+          latestUnderlying.date !== bundle.latest.underlying.date ||
+          latestUnderlying.close !== bundle.latest.underlying.close))
+    ) {
+      context.addIssue({
+        code: 'custom',
+        message: 'latest.underlying은 기초자산 시계열의 마지막 값과 같아야 합니다.',
+        path: ['latest', 'underlying'],
+      });
+    }
+
+    if (bundle.stale.asOf !== bundle.latest.product.date) {
+      context.addIssue({
+        code: 'custom',
+        message: 'stale.asOf는 최신 상품 가격의 기준일과 같아야 합니다.',
+        path: ['stale', 'asOf'],
+      });
+    }
+
+    const underlyingDates = new Set(bundle.underlyingSeries.map(({ date }) => date));
+    const latestCommonDate = bundle.productSeries
+      .map(({ date }) => date)
+      .filter((date) => underlyingDates.has(date))
+      .at(-1);
+    if (bundle.latest.analysisDate !== latestCommonDate) {
+      context.addIssue({
+        code: 'custom',
+        message: 'latest.analysisDate는 두 시계열의 마지막 공통 거래일이어야 합니다.',
+        path: ['latest', 'analysisDate'],
+      });
+    }
+
+    if (
+      bundle.product.analysisCapability === 'actual-only' &&
+      (bundle.underlyingSeries.length > 0 ||
+        bundle.latest.underlying !== undefined ||
+        bundle.latest.analysisDate !== undefined)
+    ) {
+      context.addIssue({
+        code: 'custom',
+        message: 'actual-only 상품은 검증되지 않은 기초자산 시계열을 포함할 수 없습니다.',
+        path: ['underlyingSeries'],
+      });
+    }
+  });
 
 export const ProductVerificationSchema = z
   .object({
@@ -145,6 +208,45 @@ export const AnalysisDataResponseSchema = z
   .object({ data: ProductDataBundleSchema, meta: ApiMetaSchema })
   .strict();
 
+export const HealthCoverageSchema = z
+  .object({
+    activeProducts: z.number().int().nonnegative(),
+    freshProducts: z.number().int().nonnegative(),
+    staleProducts: z.number().int().nonnegative(),
+    missingProducts: z.number().int().nonnegative(),
+    complete: z.boolean(),
+  })
+  .strict()
+  .superRefine((coverage, context) => {
+    const classified = coverage.freshProducts + coverage.staleProducts + coverage.missingProducts;
+    if (classified !== coverage.activeProducts) {
+      context.addIssue({
+        code: 'custom',
+        message: 'coverage 상품 분류 합계는 activeProducts와 같아야 합니다.',
+        path: ['activeProducts'],
+      });
+    }
+    const expectedComplete =
+      coverage.activeProducts > 0 && coverage.freshProducts === coverage.activeProducts;
+    if (coverage.complete !== expectedComplete) {
+      context.addIssue({
+        code: 'custom',
+        message: 'coverage.complete는 활성 상품이 모두 최신일 때만 true여야 합니다.',
+        path: ['complete'],
+      });
+    }
+  });
+
+export const HealthLastSyncSchema = z
+  .object({
+    state: z.enum(['running', 'success', 'empty', 'failed', 'partial']),
+    startedAt: z.iso.datetime({ offset: true }),
+    finishedAt: z.iso.datetime({ offset: true }).nullable(),
+    latestTradeDate: ISODateSchema.nullable(),
+    recordCount: z.number().int().nonnegative(),
+  })
+  .strict();
+
 export const HealthResponseSchema = z
   .object({
     status: z.enum(['ok', 'degraded']),
@@ -153,6 +255,8 @@ export const HealthResponseSchema = z
     latestTradeDate: ISODateSchema.nullable(),
     stale: z.boolean(),
     checkedAt: z.iso.datetime({ offset: true }),
+    coverage: HealthCoverageSchema.optional(),
+    lastSync: HealthLastSyncSchema.nullable().optional(),
   })
   .strict();
 
@@ -175,3 +279,6 @@ export type StaleStatus = z.infer<typeof StaleStatusSchema>;
 export type ProductMasterEntry = z.infer<typeof ProductMasterEntrySchema>;
 export type AnalysisDataQuery = z.infer<typeof AnalysisDataQuerySchema>;
 export type BackfillQuery = z.infer<typeof BackfillQuerySchema>;
+export type HealthCoverage = z.infer<typeof HealthCoverageSchema>;
+export type HealthLastSync = z.infer<typeof HealthLastSyncSchema>;
+export type HealthResponse = z.infer<typeof HealthResponseSchema>;

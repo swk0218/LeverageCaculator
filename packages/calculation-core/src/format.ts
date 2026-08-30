@@ -50,6 +50,11 @@ export function formatQuantity(value: number): string {
   return `${WON_FORMATTER.format(normalizeZero(Math.round(value)))}주`;
 }
 
+export function formatIndexPoints(value: number): string {
+  if (!Number.isFinite(value)) return '—';
+  return `${formatFiniteNumber(value, 0, 2)}포인트`;
+}
+
 export function formatPercent(rate: number, fractionDigits = 1, showPositiveSign = true): string {
   if (!Number.isFinite(rate)) return '—';
   const percentage = roundForDisplay(rate * 100, fractionDigits);

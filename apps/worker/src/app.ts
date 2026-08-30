@@ -14,7 +14,11 @@ import { buildCachedBundle } from './bundle';
 import { dateInSeoul } from './time';
 import type { AppDependencies, CatalogScope } from './types';
 
-const JSON_HEADERS = { 'content-type': 'application/json; charset=utf-8' } as const;
+const JSON_HEADERS = {
+  'content-type': 'application/json; charset=utf-8',
+  'content-security-policy': "default-src 'none'; frame-ancestors 'none'",
+  'x-content-type-options': 'nosniff',
+} as const;
 const PUBLIC_METHODS = 'GET, OPTIONS';
 const ADMIN_METHODS = 'POST, OPTIONS';
 
@@ -54,8 +58,7 @@ function parseUniqueQuery(url: URL): Record<string, string> | null {
 }
 
 function hasBody(request: Request): boolean {
-  const contentLength = request.headers.get('content-length');
-  return contentLength !== null && contentLength !== '0';
+  return request.body !== null;
 }
 
 function scopeForMode(mode: AppDependencies['mode']): CatalogScope {
@@ -129,18 +132,57 @@ async function handleRequest(
     if (url.search !== '') return error('INVALID_QUERY', '지원하지 않는 쿼리입니다.', 400);
     const health = await dependencies.repository.health(scope);
     const checkedAt = dependencies.now();
-    const stale =
-      health.latestTradeDate === null ||
-      assessStaleness(health.latestTradeDate, dateInSeoul(checkedAt)).isStale;
+    const today = dateInSeoul(checkedAt);
+    const productStates = health.products.map(({ code, latestTradeDate }) => ({
+      code,
+      latestTradeDate,
+      stale: latestTradeDate === null ? true : assessStaleness(latestTradeDate, today).isStale,
+    }));
+    const missingProducts = productStates.filter(({ latestTradeDate }) => latestTradeDate === null);
+    const staleProducts = productStates.filter(
+      ({ latestTradeDate, stale }) => latestTradeDate !== null && stale,
+    );
+    const activeProducts = productStates.length;
+    const freshProducts = activeProducts - missingProducts.length - staleProducts.length;
+    const completeCoverage =
+      activeProducts > 0 && missingProducts.length === 0 && staleProducts.length === 0;
+    const stale = !completeCoverage;
+    const lastSync =
+      health.lastSync === null
+        ? null
+        : {
+            state:
+              health.lastSync.status === 'failed' &&
+              (health.lastSync.recordCount > 0 ||
+                health.lastSync.errorSummary?.startsWith('PARTIAL_') === true)
+                ? ('partial' as const)
+                : health.lastSync.status,
+            startedAt: health.lastSync.startedAt,
+            finishedAt: health.lastSync.finishedAt,
+            latestTradeDate: health.lastSync.latestTradeDate,
+            recordCount: health.lastSync.recordCount,
+          };
+    const syncHealthy = lastSync?.state === 'success' || lastSync?.state === 'empty';
+    const baseHealth = HealthResponseSchema.parse({
+      status: health.database === 'ok' && completeCoverage && syncHealthy ? 'ok' : 'degraded',
+      mode: dependencies.mode,
+      database: health.database,
+      latestTradeDate: health.latestTradeDate,
+      stale,
+      checkedAt: checkedAt.toISOString(),
+    });
     return json(
-      HealthResponseSchema.parse({
-        status: health.database === 'ok' && !stale ? 'ok' : 'degraded',
-        mode: dependencies.mode,
-        database: health.database,
-        latestTradeDate: health.latestTradeDate,
-        stale,
-        checkedAt: checkedAt.toISOString(),
-      }),
+      {
+        ...baseHealth,
+        coverage: {
+          activeProducts,
+          freshProducts,
+          staleProducts: staleProducts.length,
+          missingProducts: missingProducts.length,
+          complete: completeCoverage,
+        },
+        lastSync,
+      },
       200,
       'no-store',
     );

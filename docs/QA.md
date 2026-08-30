@@ -2,149 +2,139 @@
 
 ## Release verdict
 
-The fixture-mode production release candidate passes every local gate. Live public-data verification
-and Cloudflare deployment are separately blocked by credentials and final URLs; they were not
-simulated or reported as complete.
+The release candidate passes every local product, calculation, Worker, privacy, accessibility,
+build, and visual gate. The approved key is registered as a GitHub Actions Secret, while the first
+live 18-product export, Pages deployment, and hosted smoke remain external evidence. AdSense stays
+disabled.
 
 ## Automated evidence
 
-| Gate                            | Result                                                               |
-| ------------------------------- | -------------------------------------------------------------------- |
-| `pnpm verify:quick`             | PASS: format, lint, strict TypeScript, core 27/27, contracts 17/17   |
-| `pnpm test`                     | PASS: 6 files, 54/54 tests                                           |
-| Core coverage                   | PASS: 99.31% statements, 98.23% branches, 100% functions, 100% lines |
-| Workerd + local D1 integration  | PASS: 1/1 runtime test                                               |
-| `pnpm test:e2e`                 | PASS: 13/13 production-static Chromium scenarios                     |
-| `pnpm test:a11y`                | PASS: 2/2; serious/critical axe violations: 0                        |
-| `pnpm test:visual`              | PASS: 20 fixture comparisons; one intentional live-only skip         |
-| Live API-error visual           | PASS: 1/1 with explicit live-mode opt-in and intercepted request     |
-| `pnpm audit --audit-level high` | PASS: no known vulnerabilities                                       |
-| `pnpm release:check`            | LOCAL GATES PASS; exit 2 with ten external prerequisites             |
-| `pnpm astryx doctor`            | PASS: 6 checks, 0 warnings, 0 failures                               |
-| GitHub Actions Ubuntu CI        | PASS: run #2 at `acb29e0`; full `pnpm verify`                        |
+| Gate                              | Current result                                                        |
+| --------------------------------- | --------------------------------------------------------------------- |
+| `pnpm verify:quick`               | PASS: format, lint, strict TypeScript, core 30/30, contracts 29/29    |
+| `pnpm test`                       | PASS: 9 files, 87/87 tests                                            |
+| Core coverage                     | PASS: 99.34% statements, 97.87% branches, 100% functions, 100% lines  |
+| Workerd + local D1 integration    | PASS: 1/1 runtime test                                                |
+| `pnpm test:e2e`                   | PASS: 18/18 production-static Chromium scenarios                      |
+| `pnpm test:a11y`                  | PASS: 3/3; all axe WCAG violation severities: 0                       |
+| `pnpm test:visual`                | PASS: 20/20 fixture comparisons; one intentional live-only skip       |
+| `pnpm audit --audit-level high`   | PASS: no known vulnerabilities                                        |
+| Pages-static `pnpm release:check` | PASS through build/artifact gates; fail-closed without generated JSON |
+| `pnpm astryx doctor`              | PASS: 6 checks, 0 warnings, 0 failures                                |
 
-The calculation suite includes all required golden vectors (consecutive rise, rise-then-fall,
-inverse -2X, positive and negative compound effect, multiple lots, date inclusion, common analysis
-date, partial analysis) plus property tests for break-even reconstruction, aggregation, finite
-output, sign behavior, and formatting. Provider contracts also cover bounded retry for both HTTP
-errors and HTTP-200 FSC error envelopes, including a timeout while reading the response body.
+The calculation suite contains the required rise, rise/fall, inverse -2X, multiple-lot, date,
+common-analysis-date, missing-intermediate-date, and partial-analysis vectors. Property tests cover
+break-even reconstruction, aggregation, finite values, signs, and formatting. Provider contracts
+reject malformed and out-of-request-range FSC records. Worker tests cover bodyless backfill,
+per-product health coverage, last-sync state, empty responses, and partial ingestion failure.
 
-## Browser and viewport verification
+## Product-design audit
 
-The native in-app Browser bootstrap was attempted first and returned `Invocation failed` because
-`privileged native pipe bridge is not available; browser-client is not trusted`. This is a tooling
-restriction, not an application failure. The fallback was Playwright 1.62.1 with Chromium against a
-fresh production-static Astro build served on `127.0.0.1:4387`; server reuse is disabled so a stale
-development page cannot satisfy a release run.
+The review used the user-requested priorities: information hierarchy, UX convenience,
+accessibility, intuitiveness, and separation of necessary from unnecessary content.
 
-Native-size captures and interaction checks cover:
+### Information hierarchy
 
-- 360×800
-- 390×844
-- 430×932
-- 768×1024
-- 1280×900
-- 1440×1000
+- The primary sequence is now `상품 → 매수내역 → 현재가 → 계산 → 결과`; the page no longer opens
+  with a long marketing hero or numbered/game-like decoration.
+- Initial totals use an honest empty state instead of three misleading zero values.
+- Actual-only products show the two valid result metrics and one scope explanation. Repeated
+  unavailable cards and the unsupported compound panel are not rendered.
+- Detailed P/L is collapsed by default, while the decision-making summary stays visible.
+- Mobile supported products are grouped by underlying asset and can be expanded independently.
 
-Verified states are initial, three purchases, loss, profit, inverse, manual current price, stale
-data, partial analysis, and API error. Across the six responsive widths there is no horizontal page
-overflow; result-heavy 360px content remains contained; primary controls meet the 44px touch target;
-ads do not overlap the calculator; and captured browser console errors are zero.
+### Convenience and intuitiveness
 
-## Functional and privacy coverage
+- The calculator is a native form: Enter submits, incomplete submission focuses the first missing
+  field, and every missing value gets a local explanation.
+- Product change and destructive reset require confirmation when position data would be lost.
+- Adding or removing a row invalidates stale results and restores focus to the useful next control.
+- Manual current price has a draft, Apply, Cancel, and return-to-official-price path; uncommitted
+  typing no longer changes calculations.
+- Input persistence is off by default. Users may opt into this-device storage for up to 30 days and
+  can remove it from the same task area.
+- Inactive ad slots render nothing. Public UI contains no API-key or deployment setup instructions.
 
-The browser suite exercises product name/code search, product selection, one to three purchase rows,
-live average/quantity/cost totals, middle-row deletion, recalculation, 1/5/20-day break-even periods,
-localStorage restore and reset, official/manual current-price distinction, inverse -2X, stale and
-actual-only results, invalid/future/non-trading dates, zero values, keyboard-only calculation, and
-result focus/announcement.
+### Accessibility
 
-Network interception seeds sentinel financial values and asserts that none appear in URLs, request
-bodies, fetch/XHR/beacon calls, analytics, or advertising. Fixture mode produces no external ad or
-analytics request. The API accepts only public product codes and date ranges, rejects unknown query
-fields, uses parameter-bound SQL, exact-origin CORS, bounded upstream retry/timeout, and sanitized
-error responses.
+- Labels, field-level error relationships, logical tab order, visible focus, native disclosure,
+  result/error focus recovery, reduced motion, forced-colors treatment, and minimum touch targets
+  are verified.
+- Financial meaning is not color-only: signed values and explanatory text accompany red/green;
+  break-even burden uses a neutral treatment.
+- Axe is run without severity filtering on desktop initial/full-result states and on mobile
+  validation/actual-only/product-list states. Current violations: 0.
+- Responsive checks cover 360, 390, 430, 768, 1280, and 1440 pixels with no horizontal page overflow.
 
-## Visual fidelity ledger
+## Browser and visual verification
 
-Accepted reference: the public Meta Astryx design-system landing experience, preserved at
-`C:/Users/swk02/.codex/visualizations/2026/08/25/01a03b23-4840-7f33-a871-72cdbf582414/astryx-reference-1440.png`.
-The reference and implementation captures were both inspected with the local image viewer. The
-implementation pairs reviewed at native sizes are:
+The in-app Browser was invoked first but could not establish its trusted desktop connection. The
+current-run fallback is Playwright 1.62.1 Chromium against a fresh production-static Astro
+build on the local test server. Server reuse is disabled for the automated suite. Captured console
+warnings/errors: 0.
 
-- `tests/e2e/visual.spec.ts-snapshots/initial-1440-chromium-win32.png`
-- `tests/e2e/visual.spec.ts-snapshots/loss-result-390-chromium-win32.png`
-- `tests/e2e/visual.spec.ts-snapshots/initial-1440-chromium-linux.png`
-- `tests/e2e/visual.spec.ts-snapshots/loss-result-390-chromium-linux.png`
+Current-run screenshots were inspected alongside their pre-audit counterparts at the same viewport
+and state. The accepted change removes the oversized intro, initial zeros, single-row delete,
+prominent destructive reset, developer `Fixture` wording, two inactive ad placeholders, repeated
+unsupported results, and the long ungrouped mobile product list.
 
-Five-point fidelity assessment:
+Approved Win32 visual baselines cover:
 
-1. Bright neutral canvas, clean high contrast, and calm surface hierarchy follow the accepted Astryx
-   character.
-2. Astryx reset, neutral theme, Button component, tokens, focus behavior, and spacing form the UI
-   foundation rather than a look-alike component library.
-3. Graphite controls and a restrained steel-blue accent preserve the decisive action hierarchy.
-4. Strong typography and generous section whitespace keep dense financial information legible.
-5. Responsive stacking, explicit labels, visible focus, semantic signs, and reduced-motion support
-   preserve clarity from 360px through 1440px.
+- initial at 360, 390, 430, 768, 1280, and 1440 pixels;
+- three purchases, loss, profit, inverse, manual price, stale data, and actual-only at 390 and 1440;
+- one separate live-only API-error baseline, intentionally skipped by normal fixture verification.
 
-Intentional product deviations are the Korean wordmark, soft glass surfaces, compact calculator-first
-density instead of a marketing hero, and green/red financial semantics reinforced by signs and
-sentences. No Astryx marketing copy was reused; all
-product copy is original Korean written for the calculator.
-
-## Approved visual baselines
-
-`tests/e2e/visual.spec.ts-snapshots/` contains 21 reviewed Win32 Chromium PNGs and 20 reviewed
-Linux Chromium PNGs:
-
-- initial at all six required viewports;
-- three-purchase, loss, profit, inverse, manual-price, stale-data, and partial-analysis at 390px and
-  1440px;
-- the explicit live API-error state at 390px.
-
-GitHub Actions run #1 correctly failed when the Linux snapshots did not yet exist and uploaded its
-20 generated fixture snapshots plus traces as `playwright-linux-evidence`. The Linux desktop initial
-and mobile loss states were inspected against the Astryx reference and their Win32 counterparts;
-all 20 files have matching scenario names and valid native dimensions. They are now committed as
-platform-specific expectations. The API-error baseline is deliberately Win32-only because normal CI
-stays in fixture mode. [GitHub Actions run #2](https://github.com/swk0218/LeverageCaculator/actions/runs/32921277898)
-then passed the entire Ubuntu job with all 20 comparisons.
-
-Fixture comparisons run normally with:
+The accepted baseline command is:
 
 ```powershell
 pnpm test:visual
 ```
 
-The API-error baseline is deliberately opt-in so fixture mode cannot masquerade as a server error:
+## Functional and privacy coverage
 
-```powershell
-$env:PUBLIC_DATA_MODE = 'live'
-$env:E2E_LIVE_ERROR_STATE = '1'
-pnpm exec playwright test tests/e2e/visual.spec.ts --grep "API error at 390px"
-Remove-Item Env:PUBLIC_DATA_MODE
-Remove-Item Env:E2E_LIVE_ERROR_STATE
-```
+The browser suite exercises search/selection, one-to-three purchase lots, totals, deletion,
+recalculation, 1/5/20-day periods, opt-in storage/restore/removal, confirmed reset, official/manual
+current price, inverse -2X, stale/actual-only states, future/non-trading dates, zero values,
+keyboard-only completion, stale-result invalidation, and confirmed product switching.
 
-## Production bundle review
+Network interception seeds sentinel financial values and verifies that none appear in URLs, request
+bodies, fetch/XHR/beacon calls, analytics, or ad traffic. Fixture mode issues no ad or analytics
+request. The API accepts public product/date parameters only, rejects unknown fields and request
+bodies where forbidden, binds SQL parameters, applies exact-origin CORS, and sanitizes errors.
 
-The live build statically emits eight pages plus robots and sitemap. The last inspected asset set was
-approximately 664KB raw JS/CSS before compression: calculator island 266KB raw/74KB gzip, shared
-client 181KB/57KB gzip, BaseLayout CSS 168KB/30KB gzip, and calculator CSS 18KB/4KB gzip. There is no
-chart library or global state package. Static pages remain HTML and only the calculator hydrates.
-An unused 580KB generated PNG was removed; the visible brand is text plus a tiny inline SVG, so the
-artifact is not shipped.
+## Production bundle and security review
 
-The release build is also scanned for fixture identifiers/copy, server-only secret names and values,
-placeholder production identifiers, unintended `noindex`, unconsented ad code, unreviewed TODO/FIXME
-markers, policy routes, and migration schema requirements.
+The live-mode local build emits eight HTML pages plus robots, sitemap, and `_headers`. Current raw
+static artifact totals are 790,724 bytes: 495,530 bytes JavaScript and 192,200 bytes CSS. The largest
+client asset is the calculator island at 283,577 raw bytes. Static content stays in Astro HTML; no
+chart or global-state library was added.
 
-## Security-header deployment plan
+The release gate scans for fixture identifiers/copy, server-only secret names and values,
+placeholder production identifiers, unintended `noindex`, unconsented ad code, TODO/FIXME markers,
+policy routes, and migration requirements. All local checks pass.
 
-Cloudflare should add `X-Content-Type-Options: nosniff`, a restrictive `Referrer-Policy`,
-`Permissions-Policy`, frame protection, and a CSP after the final Pages/Worker origins and optional
-AdSense domains are known. The CSP must keep `default-src`, `base-uri`, `object-src`,
-`frame-ancestors`, and `form-action` restrictive, explicitly list the final API under `connect-src`,
-and include Google advertising origins only after approval/consent. This final-domain-dependent step
-is part of the live launch checklist rather than a permissive placeholder policy in source.
+`apps/web/public/_headers` now provides HSTS, nosniff, restrictive referrer/permissions/frame
+policies, and a baseline CSP. The Worker provides CSP/nosniff for JSON responses. The current CSP
+retains `unsafe-inline` only for existing inline site metadata/conditional scripts and lists the
+prepared AdSense origins; real AdSense consent behavior and final-origin policy still require live
+verification after approval. GitHub Pages support for `_headers` is not assumed.
+
+## Remaining evidence boundaries
+
+- Live FSC responses, latest dates, and quota behavior must be witnessed in the first Actions run;
+  exact underlying series remain unverified, so production products stay conservatively actual-only.
+- D1 batch failure is surfaced as partial and never green, but one ingestion run is not atomic across
+  every bounded batch.
+- Final Pages/Worker headers, CSP, CORS, consent, and browser behavior require the deployed origins.
+- The current release candidate still requires PR/CI, merge, and a successful Pages deployment.
+
+## Current screenshot paths
+
+- Desktop task: `C:/Users/swk02/.codex/visualizations/2026/08/25/01a03b23-4840-7f33-a871-72cdbf582414/yangbok-completion-audit-20260826/18-final-desktop-task.png`
+- Desktop result: `C:/Users/swk02/.codex/visualizations/2026/08/25/01a03b23-4840-7f33-a871-72cdbf582414/yangbok-completion-audit-20260826/19-final-desktop-result.png`
+- Desktop products: `C:/Users/swk02/.codex/visualizations/2026/08/25/01a03b23-4840-7f33-a871-72cdbf582414/yangbok-completion-audit-20260826/25-final-desktop-products.png`
+- Mobile task: `C:/Users/swk02/.codex/visualizations/2026/08/25/01a03b23-4840-7f33-a871-72cdbf582414/yangbok-completion-audit-20260826/20-final-mobile-task.png`
+- Mobile validation: `C:/Users/swk02/.codex/visualizations/2026/08/25/01a03b23-4840-7f33-a871-72cdbf582414/yangbok-completion-audit-20260826/21-final-mobile-validation.png`
+- Mobile full result: `C:/Users/swk02/.codex/visualizations/2026/08/25/01a03b23-4840-7f33-a871-72cdbf582414/yangbok-completion-audit-20260826/22-final-mobile-result.png`
+- Mobile actual-only: `C:/Users/swk02/.codex/visualizations/2026/08/25/01a03b23-4840-7f33-a871-72cdbf582414/yangbok-completion-audit-20260826/23-final-mobile-actual-only.png`
+- Mobile products: `C:/Users/swk02/.codex/visualizations/2026/08/25/01a03b23-4840-7f33-a871-72cdbf582414/yangbok-completion-audit-20260826/24-final-mobile-products.png`

@@ -200,6 +200,28 @@ function priceAt(series: readonly PricePoint[], date: ISODate): number | undefin
   return series.find((point) => point.date === date)?.close;
 }
 
+function findMissingUnderlyingTradingDates(
+  productTradingDates: readonly ISODate[],
+  underlyingDates: ReadonlySet<ISODate>,
+  purchaseDate: ISODate,
+  analysisDate: ISODate,
+): ISODate[] {
+  return productTradingDates.filter(
+    (date) => date >= purchaseDate && date <= analysisDate && !underlyingDates.has(date),
+  );
+}
+
+function missingUnderlyingTradingDatesWarning(
+  purchaseId: string,
+  missingDates: readonly ISODate[],
+): string {
+  const displayedDates = missingDates.slice(0, 3).join(', ');
+  const remainingCount = missingDates.length - 3;
+  const dateSummary =
+    remainingCount > 0 ? `${displayedDates} 외 ${remainingCount}일` : displayedDates;
+  return `매수분 ${purchaseId}은(는) 매수일~분석일 사이 상품 거래일 ${dateSummary}의 기초자산 종가가 누락되어 복리 분석에서 제외했습니다.`;
+}
+
 export function calculateLotTheory(
   purchase: Purchase,
   underlyingSeries: readonly PricePoint[],
@@ -333,6 +355,8 @@ export function analyzePosition(
   const warnings: string[] = [];
   const lotTheory: LotTheoryResult[] = [];
   const excludedPurchaseIds: string[] = [];
+  const productTradingDates = productSeries.map((point) => point.date);
+  const underlyingDates = new Set(underlyingSeries.map((point) => point.date));
 
   for (const purchase of input.purchases) {
     if (purchase.date > analysisDate) {
@@ -346,9 +370,20 @@ export function analyzePosition(
         `매수분 ${purchase.id}은(는) ${purchase.date} 기초자산 종가가 없어 복리 분석에서 제외했습니다.`,
       );
     } else {
-      lotTheory.push(
-        calculateLotTheory(purchase, underlyingSeries, analysisDate, input.product.leverage),
+      const missingTradingDates = findMissingUnderlyingTradingDates(
+        productTradingDates,
+        underlyingDates,
+        purchase.date,
+        analysisDate,
       );
+      if (missingTradingDates.length > 0) {
+        excludedPurchaseIds.push(purchase.id);
+        warnings.push(missingUnderlyingTradingDatesWarning(purchase.id, missingTradingDates));
+      } else {
+        lotTheory.push(
+          calculateLotTheory(purchase, underlyingSeries, analysisDate, input.product.leverage),
+        );
+      }
     }
   }
 

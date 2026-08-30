@@ -1,7 +1,7 @@
 # Current Status
 
-- Current milestone: P9 complete — GitHub Pages fixture preview live; production credentials pending
-- Last completed milestone: P9
+- Current milestone: P9 Pages-static release candidate — local verification complete; live Actions/Pages witness pending
+- Last completed milestone: official-data static export, 15:40 KST scheduling, and Pages release hardening
 - Quick verification command: `pnpm verify:quick`
 - Full verification command: `pnpm verify`
 
@@ -9,72 +9,74 @@
 
 - P0–P9 implementation is complete: Astro/React web app, pure calculation engine, contracts,
   official-data adapter, Cloudflare Worker, D1, scheduled ingestion, content, policy pages, SEO,
-  advertising gates, tests, CI, and deployment instructions.
-- Meta Astryx 0.5.0 neutral theme is wired as the UI foundation. `pnpm astryx doctor` reports six
-  passes, zero warnings, and zero failures; the Button contract resolves from the official package.
-- The fixture release candidate passes formatting, lint, strict type checks, 54 unit/contract/web/
-  Worker tests (including 17 contract/provider cases), Workerd+D1 integration, production build,
-  13 non-visual E2E tests, two accessibility
-  tests, and 20 fixture visual comparisons. The separately enabled live API-error visual also passes.
-- Calculation core coverage is 99.31% statements, 98.23% branches, 100% functions, and 100% lines.
-- The production release gate passes its local artifact checks without fixture products, server
-  secrets, production `noindex`, consent bypass, placeholder products, shared fixture/production D1,
-  unreviewed TODO/FIXME markers, or missing policy/migration artifacts. It then exits 2 because ten
-  credential/configuration prerequisites remain external; an explicitly active fixture mode exits 1.
-- Browser privacy checks confirm that purchase dates, prices, quantities, averages, P/L, returns,
-  and manually entered prices are not sent in URL, request body, beacon, analytics, or ad traffic.
-- Approved Win32 Chromium baselines cover all six required viewports and every required UI state.
-  The 20 fixture-mode Linux baselines emitted by GitHub Actions run #1 were reviewed and added;
-  the separate opt-in API-error baseline remains Win32-only because CI intentionally runs fixture mode.
-- [GitHub Actions CI run #2](https://github.com/swk0218/LeverageCaculator/actions/runs/32921277898)
-  completed successfully for commit `acb29e0`, including the full Ubuntu verification and all 20
-  Linux fixture snapshot comparisons.
-- [GitHub Pages 체험판](https://swk0218.github.io/LeverageCaculator/) is built from `main` by
-  `.github/workflows/pages.yml` with `PUBLIC_DATA_MODE=fixture` and the `/LeverageCaculator`
-  project base path. This is a public demo, not the live FSC/Worker release.
+  advertising gates, tests, CI configuration, and deployment instructions.
+- The 2026-08-26 completion audit covered information hierarchy, task flow, accessibility,
+  intuitiveness, unnecessary UI, calculation integrity, provider contracts, Worker boundaries,
+  privacy, security headers, and release gates.
+- The calculator now keeps one clear `상품 선택 → 매수내역 → 계산 → 결과` path. Developer jargon,
+  inactive advertisement placeholders, repeated unsupported result cards, initial zero metrics, and
+  the game/pixel direction were removed.
+- Position persistence is opt-in, scoped to the current device, schema-validated, and expires after
+  30 days. Product changes and destructive reset protect users from silent input loss.
+- Missing underlying trading dates fail closed for compound analysis. FSC dates outside the requested
+  range are rejected. Health and ingestion expose missing/partial data instead of returning false
+  success, and bodyless backfill is enforced independently of `Content-Length`.
+- Meta Astryx 0.5.0 neutral theme remains the UI foundation. `pnpm astryx doctor` reports six
+  passes, zero warnings, and zero failures.
+- `pnpm verify` passes: format, lint, strict types, 87 unit/contract/web/Worker tests, one Workerd+D1
+  integration test, production build, 18 non-visual E2E tests, three accessibility tests covering all
+  axe WCAG violation severities, and 20 fixture visual comparisons. The live-only API-error visual is
+  intentionally skipped in fixture verification.
+- Calculation core coverage is 99.34% statements, 97.87% branches, 100% functions, and 100% lines.
+- `pnpm audit --audit-level high` reports no known vulnerabilities.
+- Pages-static `pnpm release:check` passes its environment, workflow, build, security, privacy, SEO,
+  and advertising gates and fails closed locally only because Secret-generated official JSON is absent.
+- Current-run 1440px and 390px rendered task, validation, full-result, partial-result, and product-list
+  states were inspected. Browser console warnings/errors were zero.
 
 ## In progress
 
-- None for the preview path. No production code or local validation work remains for the release
-  candidate.
+- The approved `DATA_GO_KR_SERVICE_KEY` is registered as one repository Actions Secret; its value was
+  not read or copied.
+- A PR, CI run, live 18-product export, Pages deployment, and deployed-data/browser smoke are the
+  remaining release evidence.
 
-## Blocked only by external credentials
+## External or excluded scope
 
-- Set the production `PUBLIC_DATA_MODE=live`, final `PUBLIC_SITE_URL`, and final
-  `PUBLIC_API_BASE_URL`.
-- Obtain an approved `DATA_GO_KR_SERVICE_KEY` and verify live FSC payloads and field mappings.
-- Generate a strong `BACKFILL_TOKEN`; create Cloudflare D1, replace the production D1 ID/origins,
-  and apply remote migrations. The default fixture binding remains inert or uses a separate dev D1.
-- Authenticate Wrangler with a Cloudflare account or least-privilege API token, then deploy Worker
-  and Pages.
-- Run the first live backfill and verify the deployed health, products, analysis data, freshness,
-  CORS, browser console, privacy boundary, and 390px/1440px rendering.
-- Custom domain and AdSense activation are optional; advertising stays fully disabled until both
-  approval and consent readiness are explicitly configured.
+- AdSense remains disabled until approval, complete slot configuration, and consent readiness exist.
+- Cloudflare Worker/D1, backfill, CORS, and remote migrations are optional expansion work, not blockers
+  for the GitHub Pages-static release.
 
-## Known failures
+## Known failures and evidence boundaries
 
-- None in local gates. Credential-dependent live provider verification and deployment were not
-  attempted and are not represented as failures or as completed work.
-- Codex's in-app Browser could not initialize because its privileged native pipe bridge was not
-  available to the untrusted browser client. Production-static Chromium Playwright was used for all
-  rendered interaction, accessibility, privacy, responsive, console, and visual verification.
+- `pnpm verify` passes with 87 unit/contract/web/Worker tests, one Workerd+D1 integration test, 18
+  non-visual E2E tests, three accessibility tests, and 20 visual comparisons; one live-only API-error
+  visual is intentionally skipped in fixture verification.
+- A local Pages-static `pnpm release:check` without Secret-generated JSON fails exactly on the missing
+  data directory. The positive live release gate must be witnessed in GitHub Actions.
+- Until that run succeeds, the existing GitHub Pages fixture preview must not be treated as evidence
+  of this revision.
+- Codex's in-app Browser could not establish its trusted desktop connection. Production-static
+  Chromium Playwright was used for the current rendered interaction, accessibility, privacy,
+  responsive, console, and visual evidence.
+- D1 writes are performed in bounded batches. A failure is now reported as partial and never green,
+  but atomicity across every batch in one ingestion run is not guaranteed by the current schema.
 
 ## Next exact actions
 
-1. Follow `docs/EXTERNAL_ACTIONS.md` sections 1–3 to obtain the public-data key, Cloudflare access,
-   D1 UUID, and backfill token.
-2. Replace the production placeholders in `apps/worker/wrangler.jsonc`, set the three web
-   `PUBLIC_*` variables, then run `pnpm release:check` with the real release environment.
-3. Apply remote D1 migrations and seed, deploy the Worker, run the first backfill, and verify
-   `/api/v1/health`, `/api/v1/products`, and a representative `/api/v1/analysis-data` response.
-4. Connect `swk0218/LeverageCaculator` to Cloudflare Pages and complete the live launch checklist in
-   `docs/DEPLOY.md`; the GitHub Pages fixture preview can remain available for product review.
+1. Commit the reviewed release candidate, open a PR, and require CI to pass.
+2. Merge the PR and witness the push-triggered official-data export, Pages release gate, and deploy.
+3. Verify a representative static JSON, its actual `basDt`, the public 390px/1440px UI, console, and
+   privacy boundary.
+4. Leave AdSense disabled until approval and consent readiness.
 
 ## Latest screenshots
 
-- Astryx reference: `C:/Users/swk02/.codex/visualizations/2026/08/25/01a03b23-4840-7f33-a871-72cdbf582414/astryx-reference-1440.png`
-- Desktop initial: `tests/e2e/visual.spec.ts-snapshots/initial-1440-chromium-win32.png`
-- Mobile loss result: `tests/e2e/visual.spec.ts-snapshots/loss-result-390-chromium-win32.png`
-- Mobile API error: `tests/e2e/visual.spec.ts-snapshots/api-error-390-chromium-win32.png`
-- Complete approved set: `tests/e2e/visual.spec.ts-snapshots/`
+- Desktop task: `C:/Users/swk02/.codex/visualizations/2026/08/25/01a03b23-4840-7f33-a871-72cdbf582414/yangbok-completion-audit-20260826/18-final-desktop-task.png`
+- Desktop result: `C:/Users/swk02/.codex/visualizations/2026/08/25/01a03b23-4840-7f33-a871-72cdbf582414/yangbok-completion-audit-20260826/19-final-desktop-result.png`
+- Mobile task: `C:/Users/swk02/.codex/visualizations/2026/08/25/01a03b23-4840-7f33-a871-72cdbf582414/yangbok-completion-audit-20260826/20-final-mobile-task.png`
+- Mobile validation: `C:/Users/swk02/.codex/visualizations/2026/08/25/01a03b23-4840-7f33-a871-72cdbf582414/yangbok-completion-audit-20260826/21-final-mobile-validation.png`
+- Mobile full result: `C:/Users/swk02/.codex/visualizations/2026/08/25/01a03b23-4840-7f33-a871-72cdbf582414/yangbok-completion-audit-20260826/22-final-mobile-result.png`
+- Mobile actual-only result: `C:/Users/swk02/.codex/visualizations/2026/08/25/01a03b23-4840-7f33-a871-72cdbf582414/yangbok-completion-audit-20260826/23-final-mobile-actual-only.png`
+- Mobile products: `C:/Users/swk02/.codex/visualizations/2026/08/25/01a03b23-4840-7f33-a871-72cdbf582414/yangbok-completion-audit-20260826/24-final-mobile-products.png`
+- Approved regression set: `tests/e2e/visual.spec.ts-snapshots/`

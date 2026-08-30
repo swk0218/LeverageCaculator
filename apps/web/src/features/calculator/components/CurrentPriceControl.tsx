@@ -6,10 +6,13 @@ interface Props {
   officialPrice: number;
   officialDate: string;
   manualPrice: string | null;
+  draftPrice: string;
   isEditing: boolean;
   error?: string;
   onEdit: () => void;
-  onManualPriceChange: (value: string) => void;
+  onDraftPriceChange: (value: string) => void;
+  onApply: () => void;
+  onCancel: () => void;
   onUseOfficial: () => void;
 }
 
@@ -19,20 +22,21 @@ export function CurrentPriceControl({
   officialPrice,
   officialDate,
   manualPrice,
+  draftPrice,
   isEditing,
   error,
   onEdit,
-  onManualPriceChange,
+  onDraftPriceChange,
+  onApply,
+  onCancel,
   onUseOfficial,
 }: Props) {
   const inputId = useId();
   const errorId = `${inputId}-error`;
+  const helpId = `${inputId}-help`;
   const displayedManual = manualPrice ? Number(manualPrice.replaceAll(',', '')) : null;
   const usingManual =
-    !error &&
-    displayedManual !== null &&
-    Number.isSafeInteger(displayedManual) &&
-    displayedManual > 0;
+    displayedManual !== null && Number.isSafeInteger(displayedManual) && displayedManual > 0;
 
   return (
     <section className="current-price" aria-labelledby="current-price-heading">
@@ -56,35 +60,65 @@ export function CurrentPriceControl({
           <div className="unit-input">
             <input
               id={inputId}
+              aria-label="직접 입력할 현재가 (원)"
               type="text"
               inputMode="numeric"
               autoFocus
               required
-              value={manualPrice ?? ''}
+              value={draftPrice}
               aria-invalid={Boolean(error)}
-              aria-describedby={error ? errorId : undefined}
+              aria-describedby={`${helpId}${error ? ` ${errorId}` : ''}`}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault();
+                  if (!error && draftPrice) onApply();
+                } else if (event.key === 'Escape') {
+                  event.preventDefault();
+                  onCancel();
+                }
+              }}
               onChange={(event) => {
                 const digits = event.currentTarget.value
                   .replace(/[^0-9]/g, '')
                   .replace(/^0+(?=\d)/, '');
-                onManualPriceChange(digits ? digits.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : '');
+                onDraftPriceChange(digits ? digits.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : '');
               }}
             />
-            <span>원</span>
+            <span aria-hidden="true">원</span>
           </div>
+          <p id={helpId} className="manual-price-help">
+            적용하기 전까지 계산값은 바뀌지 않습니다.
+          </p>
           {error && (
             <span id={errorId} className="field-message" role="alert">
               {error}
             </span>
           )}
-          <button type="button" className="text-button" onClick={onUseOfficial}>
-            공식 가격 사용
-          </button>
+          <div className="manual-price-actions">
+            <button
+              type="button"
+              className="apply-price-button"
+              disabled={Boolean(error) || !draftPrice}
+              onClick={onApply}
+            >
+              현재가 적용
+            </button>
+            <button type="button" className="text-button" onClick={onCancel}>
+              취소
+            </button>
+          </div>
         </div>
       ) : (
-        <button type="button" className="outline-button" onClick={onEdit}>
-          현재가 수정
-        </button>
+        <div className="current-price-actions">
+          <button type="button" className="outline-button" onClick={onEdit}>
+            {usingManual ? '현재가 다시 입력' : '현재가 수정'}
+          </button>
+          {usingManual && (
+            <button type="button" className="text-button" onClick={onUseOfficial}>
+              공식 종가로 되돌리기
+            </button>
+          )}
+        </div>
       )}
     </section>
   );

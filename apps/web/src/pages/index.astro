@@ -19,11 +19,9 @@ const structuredData = {
 <BaseLayout structuredData={structuredData}>
   <section class="intro page-shell">
     <div class="calculator-shell">
-      <p class="eyebrow">양복음복 · 공식 데이터 기반 계산 도구</p>
       <h1>레버리지 복리 계산기</h1>
       <p class="intro-lede">
-        매수 내역과 현재가를 입력하면 실제 손익, 본전 조건, 일일 복리 효과를 한 화면에서 확인할 수
-        있습니다.
+        상품과 매수내역을 입력해 현재 손익과 본전 조건을 확인하세요.
       </p>
     </div>
   </section>
@@ -77,39 +75,31 @@ const structuredData = {
 
 <style>
   .intro {
-    padding-top: 64px;
+    padding-top: 32px;
   }
 
   .intro .calculator-shell {
     padding: 0 8px;
   }
 
-  .eyebrow {
-    margin: 0 0 12px;
-    color: var(--yb-accent-strong);
-    font-size: 12px;
-    font-weight: 800;
-    letter-spacing: 0.02em;
-  }
-
   .intro h1 {
     max-width: 760px;
     margin: 0;
     color: var(--yb-ink);
-    font-size: clamp(36px, 6vw, 58px);
-    line-height: 1.08;
-    letter-spacing: -0.06em;
+    font-size: clamp(30px, 4vw, 42px);
+    line-height: 1.14;
+    letter-spacing: -0.05em;
   }
 
   .intro-lede {
     max-width: 620px;
-    margin: 16px 0 0;
+    margin: 8px 0 0;
     color: var(--yb-muted);
-    font-size: clamp(16px, 2vw, 19px);
+    font-size: 16px;
   }
 
   .app-section {
-    padding-top: 32px;
+    padding-top: 20px;
   }
 
   .method-preview {
@@ -203,7 +193,7 @@ const structuredData = {
 
   @media (max-width: 760px) {
     .intro {
-      padding-top: 40px;
+      padding-top: 24px;
     }
 
     .explainer-grid {

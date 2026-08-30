@@ -7,8 +7,11 @@ import { parse as parseJsoncText, printParseErrorCode } from 'jsonc-parser';
 const root = process.cwd();
 const webDist = resolve(root, 'apps/web/dist');
 const workerRoot = resolve(root, 'apps/worker');
+const pagesStaticData = resolve(webDist, 'data', 'analysis');
 const releaseCheckSite = 'https://release-check.invalid';
 const releaseCheckApi = 'https://api.release-check.invalid';
+const releaseTarget = process.env.RELEASE_TARGET?.trim() || 'worker';
+const pagesStaticRelease = releaseTarget === 'pages-static';
 const failures = [];
 const externalBlockers = [];
 const passes = [];
@@ -181,7 +184,10 @@ function runProductionBuild() {
       NODE_ENV: 'production',
       PUBLIC_DATA_MODE: 'live',
       PUBLIC_SITE_URL: process.env.PUBLIC_SITE_URL || releaseCheckSite,
-      PUBLIC_API_BASE_URL: process.env.PUBLIC_API_BASE_URL || releaseCheckApi,
+      PUBLIC_API_BASE_URL: pagesStaticRelease
+        ? ''
+        : process.env.PUBLIC_API_BASE_URL || releaseCheckApi,
+      ...(process.env.PUBLIC_BASE_PATH ? { PUBLIC_BASE_PATH: process.env.PUBLIC_BASE_PATH } : {}),
       PUBLIC_CONSENT_READY: process.env.PUBLIC_CONSENT_READY || 'false',
     },
     stdio: 'inherit',
@@ -198,6 +204,12 @@ function runProductionBuild() {
 }
 
 function checkReleaseEnvironment() {
+  if (!['worker', 'pages-static'].includes(releaseTarget)) {
+    fail('RELEASE_TARGET must be exactly worker or pages-static.');
+  } else {
+    pass(`Release target is explicitly ${releaseTarget}.`);
+  }
+
   if (process.env.PUBLIC_DATA_MODE === 'live') {
     pass('PUBLIC_DATA_MODE is explicitly set to live.');
   } else if (process.env.PUBLIC_DATA_MODE === 'fixture') {
@@ -216,41 +228,50 @@ function checkReleaseEnvironment() {
     block('PUBLIC_SITE_URL needs the final canonical, non-placeholder HTTPS origin.');
   }
 
-  if (productionOrigin(process.env.PUBLIC_API_BASE_URL)) {
-    pass('PUBLIC_API_BASE_URL is a canonical, non-placeholder HTTPS origin.');
+  if (pagesStaticRelease) {
+    if (process.env.PUBLIC_API_BASE_URL) {
+      fail('Pages-static releases must leave PUBLIC_API_BASE_URL empty.');
+    } else {
+      pass('Pages-static release has no runtime API or browser-exposed credential dependency.');
+    }
+    pass('Cloudflare, D1, and backfill credentials are not required for the Pages-static target.');
   } else {
-    block('PUBLIC_API_BASE_URL needs the deployed Worker canonical HTTPS origin.');
-  }
+    if (productionOrigin(process.env.PUBLIC_API_BASE_URL)) {
+      pass('PUBLIC_API_BASE_URL is a canonical, non-placeholder HTTPS origin.');
+    } else {
+      block('PUBLIC_API_BASE_URL needs the deployed Worker canonical HTTPS origin.');
+    }
 
-  if (isStrongCredential(process.env.DATA_GO_KR_SERVICE_KEY)) {
-    pass('The public-data service credential is present in the release environment.');
-  } else {
-    block(
-      'DATA_GO_KR_SERVICE_KEY is absent, too short, or placeholder; live FSC ingestion cannot be verified or deployed.',
-    );
-  }
+    if (isStrongCredential(process.env.DATA_GO_KR_SERVICE_KEY)) {
+      pass('The public-data service credential is present in the release environment.');
+    } else {
+      block(
+        'DATA_GO_KR_SERVICE_KEY is absent, too short, or placeholder; live FSC ingestion cannot be verified or deployed.',
+      );
+    }
 
-  if (isStrongCredential(process.env.BACKFILL_TOKEN)) {
-    pass('BACKFILL_TOKEN is present, non-placeholder, and at least 16 characters.');
-  } else {
-    block('BACKFILL_TOKEN is absent, shorter than 16 characters, or placeholder.');
-  }
+    if (isStrongCredential(process.env.BACKFILL_TOKEN)) {
+      pass('BACKFILL_TOKEN is present, non-placeholder, and at least 16 characters.');
+    } else {
+      block('BACKFILL_TOKEN is absent, shorter than 16 characters, or placeholder.');
+    }
 
-  if (isNonNilUuid(process.env.D1_DATABASE_ID)) {
-    pass('D1_DATABASE_ID is a non-placeholder UUID.');
-  } else {
-    block(
-      'D1_DATABASE_ID is absent, placeholder, or not a UUID; the production database cannot be targeted.',
-    );
-  }
+    if (isNonNilUuid(process.env.D1_DATABASE_ID)) {
+      pass('D1_DATABASE_ID is a non-placeholder UUID.');
+    } else {
+      block(
+        'D1_DATABASE_ID is absent, placeholder, or not a UUID; the production database cannot be targeted.',
+      );
+    }
 
-  const cloudflareTokens = [process.env.CLOUDFLARE_API_TOKEN, process.env.CF_API_TOKEN];
-  if (cloudflareTokens.some((token) => isStrongCredential(token))) {
-    pass('Cloudflare token-based authentication is present.');
-  } else {
-    block(
-      'Cloudflare authentication is not proven. Provide CLOUDFLARE_API_TOKEN/CF_API_TOKEN or verify an interactive Wrangler login before deployment.',
-    );
+    const cloudflareTokens = [process.env.CLOUDFLARE_API_TOKEN, process.env.CF_API_TOKEN];
+    if (cloudflareTokens.some((token) => isStrongCredential(token))) {
+      pass('Cloudflare token-based authentication is present.');
+    } else {
+      block(
+        'Cloudflare authentication is not proven. Provide CLOUDFLARE_API_TOKEN/CF_API_TOKEN or verify an interactive Wrangler login before deployment.',
+      );
+    }
   }
 }
 
@@ -336,14 +357,22 @@ function checkBuildArtifacts() {
       'Referrer-Policy',
       'X-Frame-Options',
       'Permissions-Policy',
+      'Strict-Transport-Security',
+      'Content-Security-Policy',
     ];
     const missingHeaders = requiredHeaders.filter((header) => !headers.includes(`${header}:`));
     if (missingHeaders.length > 0) {
       fail(`Static security headers are incomplete: ${missingHeaders.join(', ')}`);
     } else {
-      pass('Static Pages responses declare the required baseline security headers.');
+      pass(
+        pagesStaticRelease
+          ? 'The static header policy file is complete; GitHub Pages response-header support is not claimed.'
+          : 'Static Pages responses declare the required baseline security headers.',
+      );
     }
   }
+
+  if (pagesStaticRelease) checkPagesStaticData();
 
   const artifactFiles = walkFiles(webDist).filter((path) =>
     textArtifactExtensions.has(extname(path)),
@@ -353,6 +382,7 @@ function checkBuildArtifacts() {
     .join('\n');
   const fixtureMarkers = [
     'Fixture 데이터로 확인 중',
+    '체험용 데이터 사용 중',
     '[체험용]',
     'F2UP01',
     'F2DN01',
@@ -433,6 +463,54 @@ function checkBuildArtifacts() {
   }
   if (!failures.some((message) => message.includes('server-only'))) {
     pass('No configured server-only credential values or names were found in client artifacts.');
+  }
+}
+
+function checkPagesStaticData() {
+  if (!existsSync(pagesStaticData) || !statSync(pagesStaticData).isDirectory()) {
+    fail('Pages-static data directory is missing from the built artifact.');
+    return;
+  }
+
+  const files = readdirSync(pagesStaticData)
+    .filter((name) => /^[0-9A-Z]{6}\.json$/u.test(name))
+    .sort();
+  if (files.length !== 18) {
+    fail(
+      `Pages-static release requires exactly 18 product exports; found ${String(files.length)}.`,
+    );
+    return;
+  }
+
+  const codes = new Set();
+  for (const name of files) {
+    const path = resolve(pagesStaticData, name);
+    try {
+      const payload = JSON.parse(readText(path));
+      const code = payload?.data?.product?.code;
+      const series = payload?.data?.productSeries;
+      const latest = payload?.data?.latest?.product;
+      if (
+        payload?.meta?.mode !== 'live' ||
+        payload?.data?.source !== 'static-export' ||
+        code !== name.slice(0, -5) ||
+        !Array.isArray(series) ||
+        series.length === 0 ||
+        latest?.date !== series.at(-1)?.date ||
+        latest?.close !== series.at(-1)?.close
+      ) {
+        fail(`Pages-static product export ${name} is incomplete or internally inconsistent.`);
+      }
+      if (typeof code === 'string') codes.add(code);
+    } catch (error) {
+      fail(`Pages-static product export ${name} is not valid JSON: ${String(error)}`);
+    }
+  }
+
+  if (codes.size !== 18) {
+    fail(`Pages-static product exports must contain 18 unique product codes; found ${codes.size}.`);
+  } else if (!failures.some((message) => message.includes('Pages-static product export'))) {
+    pass('All 18 Pages-static official product exports are present and internally consistent.');
   }
 }
 
@@ -635,10 +713,10 @@ function checkMigrations() {
           }
         }
         const effectiveCrons = production?.triggers?.crons ?? config.triggers?.crons;
-        if (!Array.isArray(effectiveCrons) || !effectiveCrons.includes('30 5 * * 1-5')) {
-          fail('Wrangler production must retain the 05:30 UTC weekday ingestion schedule.');
+        if (!Array.isArray(effectiveCrons) || !effectiveCrons.includes('40 6 * * 1-5')) {
+          fail('Wrangler production must retain the 06:40 UTC weekday ingestion schedule.');
         } else {
-          pass('Wrangler production retains the 05:30 UTC weekday ingestion schedule.');
+          pass('Wrangler production retains the 06:40 UTC weekday ingestion schedule.');
         }
       } catch (error) {
         fail(`Wrangler JSONC could not be parsed for release safety: ${String(error)}`);
@@ -668,13 +746,50 @@ function checkTrackedSecretFiles() {
   else pass('No .env or .dev.vars secret files are tracked.');
 }
 
+function checkPagesWorkflow() {
+  const failureCountBefore = failures.length;
+  const workflowPath = resolve(root, '.github', 'workflows', 'pages.yml');
+  if (!existsSync(workflowPath)) {
+    fail('GitHub Pages workflow is missing.');
+    return;
+  }
+  const workflow = readText(workflowPath);
+  const requirements = [
+    ["cron: '40 6 * * 1-5'", '15:40 KST weekday schedule'],
+    ['RELEASE_TARGET: pages-static', 'Pages-static release target'],
+    ['PUBLIC_DATA_MODE: live', 'live data mode'],
+    ["PUBLIC_API_BASE_URL: ''", 'empty runtime API URL'],
+    ['run: pnpm data:generate:pages', 'official-data generation step'],
+    ['run: pnpm release:check', 'Pages-static release gate'],
+  ];
+  for (const [needle, description] of requirements) {
+    if (!workflow.includes(needle)) fail(`Pages workflow is missing the ${description}.`);
+  }
+  const secretReferences = workflow.match(/\$\{\{\s*secrets\.DATA_GO_KR_SERVICE_KEY\s*\}\}/gu);
+  if (secretReferences?.length !== 1) {
+    fail('Pages workflow must reference DATA_GO_KR_SERVICE_KEY exactly once.');
+  } else if (
+    !/Generate validated official market data[\s\S]*?env:[\s\S]*?DATA_GO_KR_SERVICE_KEY:/u.test(
+      workflow,
+    )
+  ) {
+    fail('The public-data key must be scoped to the generation step.');
+  }
+
+  if (failures.length === failureCountBefore) {
+    pass('Pages workflow keeps one step-scoped Secret and runs at 15:40 KST on weekdays.');
+  }
+}
+
 console.log('Yangbok Eumbok production release check');
 checkReleaseEnvironment();
 checkAdConsentConfiguration();
 checkPreviewIndexingGate();
 checkPolicySources();
 checkTodoAndFixme();
-checkMigrations();
+checkPagesWorkflow();
+if (pagesStaticRelease) pass('Worker/D1 release gates are not applicable to Pages-static.');
+else checkMigrations();
 checkTrackedSecretFiles();
 runProductionBuild();
 checkBuildArtifacts();

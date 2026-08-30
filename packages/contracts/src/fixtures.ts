@@ -159,7 +159,7 @@ function bundle(
     warnings.push('기초지수 매핑이 검증되지 않아 실제 손익과 상품 자체 본전만 제공합니다.');
   }
   const stale = assessStaleness(latestProduct.date, FIXTURE_CHECKED_AT);
-  if (stale.isStale) warnings.push('공식 가격 기준일이 2영업일 이상 지연되었습니다.');
+  if (stale.isStale) warnings.push('공식 가격 기준일이 평일 기준 2일 이상 지연되었습니다.');
   if (latestUnderlying !== undefined && latestUnderlying.date !== latestProduct.date) {
     warnings.push('상품과 기초자산의 최신 기준일이 달라 마지막 공통 거래일로 분석합니다.');
   }

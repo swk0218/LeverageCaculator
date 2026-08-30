@@ -1,6 +1,6 @@
 # Data Sources and Quality
 
-Production uses Financial Services Commission public-data APIs through the Worker. Browser code never receives the service key and never calls the upstream provider directly. The adapter validates and normalizes responses before D1 upserts; empty or malformed responses never delete stored good rows.
+Production uses Financial Services Commission public-data APIs through a validated GitHub Actions static export. Browser code receives only public JSON; it never receives the service key or calls the upstream provider directly. The optional Worker/D1 path uses the same adapter contracts and preserves stored good rows when an upstream response is empty or malformed.
 
 Fixture mode is deterministic and visibly labeled. It covers +2X, -2X, fresh, stale, mismatched dates, actual-only products, empty responses, malformed responses, and missing dates. Verified live operation names and mappings are documented alongside the adapter.
 
@@ -16,7 +16,11 @@ The adapter was checked against the Financial Services Commission documentation 
 
 Requests send only the documented `serviceKey`, `resultType=json`, `numOfRows`, `pageNo`, `beginBasDt`, `endBasDt`, and the dataset-specific code/name filter. The official date contract treats `endBasDt` as an exclusive upper bound, so the adapter converts the app's inclusive `to` date to the following calendar day. It then exact-matches the returned code or index name to prevent a `like` filter from admitting a different instrument.
 
-The upstream service is daily, not intraday. Stock and index pages state that data is updated after 13:00 on the next business day. The app therefore schedules weekday ingestion at 14:30 KST (`05:30 UTC`) and re-requests a rolling ten-calendar-day window. D1 upserts on `(asset_id, trade_date)`, making repeated runs idempotent. A valid empty response (`totalCount = 0`) records an empty sync but preserves the previous cache. Malformed, authentication, timeout, and provider errors fail the sync and also preserve the previous cache.
+The upstream service is daily, not intraday. Stock and index pages state that data is updated after 13:00 on the next business day. The app schedules weekday ingestion only after the KRX close, at 15:40 KST (`06:40 UTC`), and always exposes the provider's actual `basDt` rather than treating the generation date as a trade date. The optional Worker path re-requests a rolling ten-calendar-day window. D1 upserts on `(asset_id, trade_date)`, making repeated runs idempotent. A valid empty response (`totalCount = 0`) records an empty sync but preserves the previous cache. Malformed, authentication, timeout, and provider errors fail the sync and also preserve the previous cache.
+
+A push or manual Pages run before 15:40 KST is capped at the previous weekday, and a weekend run is
+capped at Friday. An unscheduled deployment therefore cannot make the current trading session
+eligible merely because it ran.
 
 ## Product master and analysis capability
 
@@ -25,7 +29,7 @@ The production master contains only entries supported by an official issuer noti
 ## Runtime modes and credentials
 
 - `DATA_MODE=fixture` is the safe default and requires no network credential.
-- `DATA_MODE=live` requires the Worker secret `DATA_GO_KR_SERVICE_KEY`; never put it in `wrangler.jsonc`, `.env`, or `.dev.vars` committed to source control.
+- Pages-static live mode receives `DATA_GO_KR_SERVICE_KEY` only in the GitHub Actions generation step. The optional Worker live mode requires the same value as a Wrangler secret. Never put it in `wrangler.jsonc`, `.env`, or `.dev.vars` committed to source control.
 - `BACKFILL_TOKEN` protects `POST /api/v1/admin/backfill?from=YYYY-MM-DD&to=YYYY-MM-DD`.
 - `PUBLIC_SITE_URL` and `ALLOWED_ORIGINS` form the exact CORS allowlist. Wildcard CORS is not used.
 - Data is marked stale once the latest product price is at least two weekdays behind the current Seoul date. This is intentionally conservative and does not attempt to infer Korean exchange holidays.

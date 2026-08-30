@@ -2,11 +2,13 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 
 import {
+  analyzePosition,
   calculateActualPerformance,
   calculateLotTheory,
   calculatePurchaseSummary,
   calculateUnderlyingBreakEvenScenario,
   type PricePoint,
+  type Product,
   type Purchase,
 } from '../src/index.js';
 
@@ -18,6 +20,19 @@ const dates = [
   '2026-01-08',
   '2026-01-09',
 ] as const;
+
+const leveragedProduct: Product = {
+  code: 'PROPERTY2X',
+  name: '속성 테스트 레버리지 2X',
+  productType: 'ETF',
+  leverage: 2,
+  underlyingId: 'PROPERTY-UNDERLYING',
+  underlyingName: '속성 테스트 기초자산',
+  underlyingType: 'stock',
+  listedDate: dates[0],
+  analysisCapability: 'full',
+  active: true,
+};
 
 describe('calculation properties', () => {
   it('leverage 1 makes simple and daily compounded returns identical', () => {
@@ -100,6 +115,53 @@ describe('calculation properties', () => {
             Math.abs(result.verificationProductMultiplier! - expectedMultiplier),
           ).toBeLessThanOrEqual(1e-10 * Math.max(1, Math.abs(expectedMultiplier)));
           expect(1 + result.dailyUnderlyingReturn!).toBeGreaterThan(0);
+        },
+      ),
+    );
+  });
+
+  it('never reports full coverage when a lot spans a missing expected trading day', () => {
+    fc.assert(
+      fc.property(
+        fc.array(fc.integer({ min: 1, max: 1_000_000 }), {
+          minLength: 3,
+          maxLength: dates.length,
+        }),
+        fc.integer(),
+        (closes, missingSeed) => {
+          const missingIndex = 1 + (Math.abs(missingSeed) % (closes.length - 2));
+          const usedDates = dates.slice(0, closes.length);
+          const productSeries: PricePoint[] = closes.map((close, index) => ({
+            date: usedDates[index]!,
+            close,
+          }));
+          const underlyingSeries = productSeries.filter((_, index) => index !== missingIndex);
+          const latePurchaseDate = usedDates[missingIndex + 1]!;
+          const result = analyzePosition({
+            product: leveragedProduct,
+            purchases: [
+              {
+                id: 'spans-gap',
+                date: usedDates[0]!,
+                priceWon: 10_000,
+                quantity: 1,
+              },
+              {
+                id: 'after-gap',
+                date: latePurchaseDate,
+                priceWon: 10_000,
+                quantity: 1,
+              },
+            ],
+            currentProductPrice: closes.at(-1)!,
+            productSeries,
+            underlyingSeries,
+          });
+
+          expect(result.analysisCoverage).toBe('partial');
+          expect(result.analyzedPurchaseIds).toEqual(['after-gap']);
+          expect(result.excludedPurchaseIds).toEqual(['spans-gap']);
+          expect(result.warnings.join(' ')).toContain(usedDates[missingIndex]);
         },
       ),
     );

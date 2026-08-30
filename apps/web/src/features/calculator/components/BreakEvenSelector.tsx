@@ -1,4 +1,4 @@
-import { formatPercent, formatWon } from '@yangbok/core';
+import { formatIndexPoints, formatPercent, formatWon } from '@yangbok/core';
 import type { BreakEvenScenario, Product } from '@yangbok/core';
 
 interface Props {
@@ -18,6 +18,7 @@ export function BreakEvenSelector({
 }: Props) {
   const subject = product.underlyingType === 'stock' ? '본주' : '기초지수';
   const direction = (scenario.cumulativeUnderlyingReturn ?? 0) >= 0 ? '상승' : '하락';
+  const formatUnderlyingLevel = product.underlyingType === 'stock' ? formatWon : formatIndexPoints;
 
   return (
     <section className="break-even-panel" aria-labelledby="underlying-break-even-heading">
@@ -50,8 +51,8 @@ export function BreakEvenSelector({
           </strong>
           {currentUnderlyingPrice !== undefined && scenario.targetUnderlyingPrice !== undefined && (
             <div className="underlying-prices tabular">
-              <span>현재 {formatWon(currentUnderlyingPrice)}</span>
-              <span>목표 약 {formatWon(scenario.targetUnderlyingPrice)}</span>
+              <span>현재 {formatUnderlyingLevel(currentUnderlyingPrice)}</span>
+              <span>목표 약 {formatUnderlyingLevel(scenario.targetUnderlyingPrice)}</span>
             </div>
           )}
         </div>

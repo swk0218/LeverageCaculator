@@ -1,11 +1,13 @@
-import { useId, useMemo, useState } from 'react';
+import { useId, useMemo, useState, type RefObject } from 'react';
 
+import { Icon } from '@astryxdesign/core/Icon';
 import type { Product } from '@yangbok/core';
 
 interface Props {
   products: Product[];
   selectedCode: string;
-  onSelect: (code: string) => void;
+  inputRef: RefObject<HTMLInputElement | null>;
+  onSelect: (code: string) => boolean;
 }
 
 const underlyingTypeLabel: Record<Product['underlyingType'], string> = {
@@ -14,12 +16,12 @@ const underlyingTypeLabel: Record<Product['underlyingType'], string> = {
   'futures-index': '선물 지수',
 };
 
-export function ProductSearch({ products, selectedCode, onSelect }: Props) {
+export function ProductSearch({ products, selectedCode, inputRef, onSelect }: Props) {
   const inputId = useId();
   const listId = useId();
   const [query, setQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [activeIndex, setActiveIndex] = useState(-1);
   const selected = products.find((product) => product.code === selectedCode);
   const results = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase('ko-KR');
@@ -32,21 +34,18 @@ export function ProductSearch({ products, selectedCode, onSelect }: Props) {
   }, [products, query]);
 
   const chooseProduct = (code: string) => {
-    onSelect(code);
+    if (!onSelect(code)) return;
     setQuery('');
     setIsOpen(false);
-    setActiveIndex(0);
+    setActiveIndex(-1);
   };
 
-  const activeOption = isOpen ? results[activeIndex] : undefined;
+  const activeOption = isOpen && activeIndex >= 0 ? results[activeIndex] : undefined;
 
   return (
     <section className="calculator-section product-section" aria-labelledby="product-heading">
       <div className="section-heading-row">
         <div>
-          <p className="section-step section-label" aria-hidden="true">
-            01
-          </p>
           <h2 id="product-heading">상품</h2>
         </div>
         <span className="section-hint">상품명 또는 종목코드</span>
@@ -55,11 +54,9 @@ export function ProductSearch({ products, selectedCode, onSelect }: Props) {
       <div className="product-search">
         <label htmlFor={inputId}>상품 검색 및 선택</label>
         <div className="search-field-wrap">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <circle cx="11" cy="11" r="6.5" />
-            <path d="m16 16 4 4" />
-          </svg>
+          <Icon icon="search" size="md" aria-hidden="true" />
           <input
+            ref={inputRef}
             id={inputId}
             role="combobox"
             aria-autocomplete="list"
@@ -69,26 +66,30 @@ export function ProductSearch({ products, selectedCode, onSelect }: Props) {
             aria-activedescendant={activeOption ? `${listId}-${activeOption.code}` : undefined}
             autoComplete="off"
             value={query}
-            placeholder={selected ? selected.name : '예: 삼성전자 또는 종목코드'}
+            placeholder="상품명 또는 종목코드 검색"
             onChange={(event) => {
               setQuery(event.currentTarget.value);
               setIsOpen(true);
-              setActiveIndex(0);
+              setActiveIndex(-1);
             }}
             onFocus={() => {
               setIsOpen(true);
-              setActiveIndex(0);
+              setActiveIndex(-1);
             }}
             onBlur={() => setIsOpen(false)}
             onKeyDown={(event) => {
               if (event.key === 'ArrowDown' && results.length > 0) {
                 event.preventDefault();
                 setIsOpen(true);
-                setActiveIndex((current) => (current + 1) % results.length);
+                setActiveIndex((current) => (current < 0 ? 0 : (current + 1) % results.length));
               } else if (event.key === 'ArrowUp' && results.length > 0) {
                 event.preventDefault();
                 setIsOpen(true);
-                setActiveIndex((current) => (current - 1 + results.length) % results.length);
+                setActiveIndex((current) =>
+                  current < 0
+                    ? results.length - 1
+                    : (current - 1 + results.length) % results.length,
+                );
               } else if (event.key === 'Enter' && activeOption) {
                 event.preventDefault();
                 chooseProduct(activeOption.code);
@@ -114,7 +115,7 @@ export function ProductSearch({ products, selectedCode, onSelect }: Props) {
                 id={`${listId}-${product.code}`}
                 type="button"
                 role="option"
-                aria-label={`${product.name}, ${product.code}, ${product.leverage > 0 ? `플러스 ${product.leverage}배` : `마이너스 ${Math.abs(product.leverage)}배`}`}
+                aria-label={`${product.name}, ${product.code}, ${product.leverage > 0 ? `플러스 ${product.leverage}배` : `마이너스 ${Math.abs(product.leverage)}배`}, ${product.productType}, 기초자산 ${product.underlyingName}, ${underlyingTypeLabel[product.underlyingType]}`}
                 aria-selected={product.code === selectedCode}
                 tabIndex={-1}
                 className={`product-option ${index === activeIndex ? 'active' : ''}`}
@@ -144,6 +145,9 @@ export function ProductSearch({ products, selectedCode, onSelect }: Props) {
             일치하는 지원 상품이 없습니다.
           </p>
         )}
+        <p className="sr-only" role="status" aria-live="polite">
+          {query ? `검색 결과 ${results.length}개` : ''}
+        </p>
       </div>
 
       {selected && (
@@ -157,6 +161,14 @@ export function ProductSearch({ products, selectedCode, onSelect }: Props) {
               <span className="product-code">{selected.code}</span> · {selected.productType} ·{' '}
               {selected.underlyingName} · {underlyingTypeLabel[selected.underlyingType]}
             </p>
+          </div>
+        </div>
+      )}
+      {!selected && (
+        <div className="selected-product selected-product--empty" role="status">
+          <div>
+            <strong>계산할 상품을 선택해 주세요.</strong>
+            <p>지원 상품의 이름이나 종목코드로 검색할 수 있습니다.</p>
           </div>
         </div>
       )}

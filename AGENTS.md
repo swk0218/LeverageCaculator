@@ -21,5 +21,5 @@ Astryx v0.5.0 is the UI foundation. Load `@astryxdesign/core/reset.css`,
 Inspect component contracts with `pnpm astryx component <Name>` and validate setup
 with `pnpm astryx doctor`; do not guess component props.
 
-Use `@astryxdesign/core` and the neutral theme as the UI foundation. Inspect component APIs with `pnpm astryx component <Name>` instead of guessing. Use Astryx tokens first and keep the product's pixel-finance theme in `apps/web/src/styles/global.css`.
+Use `@astryxdesign/core` and the neutral theme as the UI foundation. Inspect component APIs with `pnpm astryx component <Name>` instead of guessing. Use Astryx tokens first and keep the product's bright, minimal finance theme in `apps/web/src/styles/global.css`; the earlier pixel/game direction is retired.
 <!-- ASTRYX:END -->

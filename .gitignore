@@ -12,6 +12,7 @@ coverage/
 playwright-report/
 test-results/
 tests/visual/actual/
+apps/web/public/data/analysis/
 *.log
 .DS_Store
 Thumbs.db

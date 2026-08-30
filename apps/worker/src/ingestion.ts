@@ -97,22 +97,65 @@ export async function runIngestion(
     provider.mode === 'live' ? 'data.go.kr-fsc' : 'fixture',
     startedAt,
   );
+  let syncRecorded = false;
   try {
-    const results = await Promise.all(
-      targets.map(({ product }) => provider.fetchProductData(product, range)),
+    const settled = await Promise.allSettled(
+      targets.map(({ product }) =>
+        Promise.resolve().then(() => provider.fetchProductData(product, range)),
+      ),
     );
-    const recordCount = results.reduce(
-      (sum, { productSeries, underlyingSeries }) =>
-        sum + productSeries.prices.length + (underlyingSeries?.prices.length ?? 0),
-      0,
-    );
-    const latest = latestTradeDate(results);
-    if (recordCount > 0) {
+    const results: Array<{
+      data: Awaited<ReturnType<MarketDataProvider['fetchProductData']>>;
+      metadata: IngestionTarget['metadata'];
+      recordCount: number;
+    }> = [];
+    const failures: unknown[] = [];
+
+    for (const [index, result] of settled.entries()) {
+      if (result.status === 'rejected') {
+        failures.push(result.reason);
+        continue;
+      }
+      const recordCount =
+        result.value.productSeries.prices.length +
+        (result.value.underlyingSeries?.prices.length ?? 0);
+      results.push({
+        data: result.value,
+        metadata: targets[index]!.metadata,
+        recordCount,
+      });
+    }
+
+    const recordCount = results.reduce((sum, result) => sum + result.recordCount, 0);
+    const latest = latestTradeDate(results.map(({ data }) => data));
+    if (results.length > 0) {
       await repository.upsertProductData(
-        results.map((data, index) => ({ data, metadata: targets[index]!.metadata })),
+        results.map(({ data, metadata }) => ({ data, metadata })),
         now().toISOString(),
       );
     }
+
+    const emptyTargetCount = results.filter((result) => result.recordCount === 0).length;
+    const partial =
+      (failures.length > 0 && results.length > 0) || (recordCount > 0 && emptyTargetCount > 0);
+    if (failures.length > 0 || partial) {
+      const errorSummary = partial
+        ? failures.length > 0
+          ? `PARTIAL_SYNC_FAILED:${failures.length}/${targets.length}:${safeErrorSummary(failures[0])}`
+          : `PARTIAL_SYNC_EMPTY:${emptyTargetCount}/${targets.length}`
+        : safeErrorSummary(failures[0]);
+      await repository.finishSyncRun(id, {
+        finishedAt: now().toISOString(),
+        status: 'failed',
+        latestTradeDate: latest,
+        recordCount,
+        errorSummary,
+      });
+      syncRecorded = true;
+      if (failures.length > 0) throw failures[0];
+      throw new Error('PARTIAL_SYNC_EMPTY');
+    }
+
     const status = recordCount === 0 ? 'empty' : 'success';
     await repository.finishSyncRun(id, {
       finishedAt: now().toISOString(),
@@ -120,15 +163,18 @@ export async function runIngestion(
       latestTradeDate: latest,
       recordCount,
     });
+    syncRecorded = true;
     return { id, status, latestTradeDate: latest, recordCount };
   } catch (error) {
-    await repository.finishSyncRun(id, {
-      finishedAt: now().toISOString(),
-      status: 'failed',
-      latestTradeDate: null,
-      recordCount: 0,
-      errorSummary: safeErrorSummary(error),
-    });
+    if (!syncRecorded) {
+      await repository.finishSyncRun(id, {
+        finishedAt: now().toISOString(),
+        status: 'failed',
+        latestTradeDate: null,
+        recordCount: 0,
+        errorSummary: safeErrorSummary(error),
+      });
+    }
     throw error;
   }
 }
