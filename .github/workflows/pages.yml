@@ -4,11 +4,13 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  schedule:
+    # KRX closes at 15:30 KST. Collect ten minutes after close and keep the
+    # provider's real basDt instead of treating generation time as a trade date.
+    - cron: '40 6 * * 1-5'
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: pages
@@ -17,13 +19,14 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     env:
-      # GitHub Pages is the public, no-credential demo surface. The live
-      # Cloudflare/FSC deployment remains a separate release path.
-      PUBLIC_DATA_MODE: fixture
+      RELEASE_TARGET: pages-static
+      PUBLIC_DATA_MODE: live
       PUBLIC_SITE_URL: https://swk0218.github.io
       PUBLIC_BASE_PATH: /LeverageCaculator
       PUBLIC_API_BASE_URL: ''
+      PUBLIC_CONSENT_READY: 'false'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -42,22 +45,29 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build static site
-        run: pnpm --filter @yangbok/web build
+      - name: Generate validated official market data
+        env:
+          DATA_GO_KR_SERVICE_KEY: ${{ secrets.DATA_GO_KR_SERVICE_KEY }}
+        run: pnpm data:generate:pages
+
+      - name: Verify Pages-static release artifact
+        run: pnpm release:check
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
-        with:
-          enablement: true
 
       - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         with:
           path: apps/web/dist
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

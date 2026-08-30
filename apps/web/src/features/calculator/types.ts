@@ -12,7 +12,10 @@ export interface PurchaseDraftErrors {
 }
 
 export interface StoredCalculatorState {
-  version: 1;
+  version: 2;
+  persistInputs: true;
+  savedAt: number;
+  expiresAt: number;
   productCode: string;
   purchases: PurchaseDraft[];
   manualCurrentPrice: string | null;

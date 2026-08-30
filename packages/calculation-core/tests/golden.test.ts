@@ -233,6 +233,46 @@ describe('calculation edge cases and analysis coverage', () => {
     expect(result.warnings.join(' ')).toContain('이후');
   });
 
+  it('fails closed when an intermediate product trading day has no underlying close', () => {
+    const result = analyzePosition({
+      product: product(),
+      purchases: [purchase({ id: 'spans-gap' })],
+      currentProductPrice: 96,
+      productSeries: [point('2026-01-02', 100), point('2026-01-05', 98), point('2026-01-06', 96)],
+      underlyingSeries: [point('2026-01-02', 100), point('2026-01-06', 99)],
+    });
+
+    expect(result.analysisDate).toBe('2026-01-06');
+    expect(result.analysisCoverage).toBe('unavailable');
+    expect(result.analyzedPurchaseIds).toEqual([]);
+    expect(result.excludedPurchaseIds).toEqual(['spans-gap']);
+    expect(result.lotTheory).toEqual([]);
+    expect(result.dailyTheoreticalPnlWon).toBeUndefined();
+    expect(result.warnings.join(' ')).toContain('상품 거래일 2026-01-05');
+    expect(result.warnings.join(' ')).toContain('기초자산 종가가 누락');
+    expect(result.warnings.join(' ')).toContain('가능한 매수분이 없습니다');
+  });
+
+  it('keeps later complete lots as a partial analysis when an earlier lot spans a data gap', () => {
+    const result = analyzePosition({
+      product: product(),
+      purchases: [
+        purchase({ id: 'spans-gap' }),
+        purchase({ id: 'after-gap', date: '2026-01-06', priceWon: 96 }),
+      ],
+      currentProductPrice: 96,
+      productSeries: [point('2026-01-02', 100), point('2026-01-05', 98), point('2026-01-06', 96)],
+      underlyingSeries: [point('2026-01-02', 100), point('2026-01-06', 99)],
+    });
+
+    expect(result.analysisCoverage).toBe('partial');
+    expect(result.analyzedPurchaseIds).toEqual(['after-gap']);
+    expect(result.excludedPurchaseIds).toEqual(['spans-gap']);
+    expect(result.lotTheory).toHaveLength(1);
+    expect(result.warnings.join(' ')).toContain('상품 거래일 2026-01-05');
+    expect(result.warnings.join(' ')).toContain('부분 분석');
+  });
+
   it('keeps analysis date but omits theory when every lot is after it', () => {
     const result = analyzePosition({
       product: product(),

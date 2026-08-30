@@ -29,9 +29,7 @@ export async function gotoCalculator(page: Page): Promise<void> {
   await expect(page.getByTestId('calculator-root')).toHaveAttribute('data-hydrated', 'true', {
     timeout: 15_000,
   });
-  await expect(
-    page.getByRole('status').filter({ hasText: 'Fixture 데이터로 확인 중' }),
-  ).toBeVisible();
+  await expect(page.getByRole('status').filter({ hasText: '체험용 데이터 사용 중' })).toBeVisible();
 }
 
 export function purchaseRow(page: Page, oneBasedIndex: number): Locator {
@@ -40,13 +38,18 @@ export function purchaseRow(page: Page, oneBasedIndex: number): Locator {
 
 export async function selectProduct(page: Page, code: string): Promise<void> {
   const productRegion = page.getByRole('region', { name: '상품' });
-  const selectedProduct = productRegion.locator('[aria-live="polite"]');
+  const selectedProduct = productRegion.locator('.selected-product');
   if ((await selectedProduct.textContent())?.includes(code)) return;
 
   const search = page.getByRole('combobox', { name: '상품 검색 및 선택' });
   await search.fill(code);
   const option = page.getByRole('option').filter({ hasText: code });
   await expect(option).toHaveCount(1);
+  const hasPositionInput = await page
+    .getByRole('group', { name: /^매수 \d+$/ })
+    .locator('input')
+    .evaluateAll((inputs) => inputs.some((input) => (input as HTMLInputElement).value !== ''));
+  if (hasPositionInput) page.once('dialog', (dialog) => dialog.accept());
   await option.click();
   await expect(selectedProduct).toContainText(code);
 }
@@ -63,7 +66,7 @@ export async function fillPurchase(
 }
 
 export async function addPurchase(page: Page, input: PurchaseInput): Promise<void> {
-  await page.getByRole('button', { name: '추가 매수' }).click();
+  await page.getByRole('button', { name: '매수내역 추가' }).click();
   const count = await page.getByRole('group', { name: /^매수 \d+$/ }).count();
   await fillPurchase(page, count, input);
 }

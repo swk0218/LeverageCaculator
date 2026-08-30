@@ -35,6 +35,20 @@ interface PriceRow {
   fetched_at: string;
 }
 
+interface ProductHealthRow {
+  code: string;
+  latest_trade_date: string | null;
+}
+
+interface SyncRunRow {
+  status: 'running' | 'success' | 'empty' | 'failed';
+  started_at: string;
+  finished_at: string | null;
+  latest_trade_date: string | null;
+  record_count: number;
+  error_summary: string | null;
+}
+
 function mapProduct(row: ProductRow): Product {
   return ProductSchema.parse({
     code: row.code,
@@ -85,18 +99,60 @@ export class D1MarketRepository implements IngestionRepository {
   async health(scope: CatalogScope): Promise<RepositoryHealth> {
     try {
       await this.db.prepare('SELECT 1 AS ok').first();
-      const row = await this.db
+      const productRows = await this.db
         .prepare(
-          `SELECT MAX(pr.trade_date) AS latest_trade_date
-           FROM prices pr
-           JOIN products p ON p.asset_id = pr.asset_id
-           WHERE p.catalog_scope = ? AND p.active = 1`,
+          `SELECT p.code, MAX(pr.trade_date) AS latest_trade_date
+           FROM products p
+           LEFT JOIN prices pr ON pr.asset_id = p.asset_id
+           WHERE p.catalog_scope = ? AND p.active = 1
+           GROUP BY p.code
+           ORDER BY p.code`,
         )
         .bind(scope)
-        .first<{ latest_trade_date: string | null }>();
-      return { database: 'ok', latestTradeDate: row?.latest_trade_date ?? null };
+        .all<ProductHealthRow>();
+      const products = productRows.results.map((row) => ({
+        code: row.code,
+        latestTradeDate: row.latest_trade_date,
+      }));
+      const latestTradeDate =
+        products
+          .flatMap(({ latestTradeDate: date }) => (date === null ? [] : [date]))
+          .sort()
+          .at(-1) ?? null;
+      const source = scope === 'fixture' ? 'fixture' : 'data.go.kr-fsc';
+      const lastSyncRow = await this.db
+        .prepare(
+          `SELECT status, started_at, finished_at, latest_trade_date, record_count, error_summary
+           FROM sync_runs
+           WHERE source = ?
+           ORDER BY started_at DESC
+           LIMIT 1`,
+        )
+        .bind(source)
+        .first<SyncRunRow>();
+      return {
+        database: 'ok',
+        latestTradeDate,
+        products,
+        lastSync:
+          lastSyncRow === null
+            ? null
+            : {
+                status: lastSyncRow.status,
+                startedAt: lastSyncRow.started_at,
+                finishedAt: lastSyncRow.finished_at,
+                latestTradeDate: lastSyncRow.latest_trade_date,
+                recordCount: lastSyncRow.record_count,
+                errorSummary: lastSyncRow.error_summary,
+              },
+      };
     } catch {
-      return { database: 'unavailable', latestTradeDate: null };
+      return {
+        database: 'unavailable',
+        latestTradeDate: null,
+        products: [],
+        lastSync: null,
+      };
     }
   }
 

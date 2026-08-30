@@ -7,19 +7,21 @@ interface Props {
 }
 
 export function PurchaseSummary({ averagePriceWon, totalQuantity, totalCostWon }: Props) {
+  const isEmpty = totalQuantity === 0;
+
   return (
     <dl className="purchase-summary" aria-label="매수내역 자동 계산">
       <div>
         <dt>계산 평단</dt>
-        <dd>{formatAveragePriceWon(averagePriceWon)}</dd>
+        <dd>{isEmpty ? '—' : formatAveragePriceWon(averagePriceWon)}</dd>
       </div>
       <div>
         <dt>총수량</dt>
-        <dd>{formatQuantity(totalQuantity)}</dd>
+        <dd>{isEmpty ? '—' : formatQuantity(totalQuantity)}</dd>
       </div>
       <div>
         <dt>총매수금액</dt>
-        <dd>{formatWon(totalCostWon)}</dd>
+        <dd>{isEmpty ? '—' : formatWon(totalCostWon)}</dd>
       </div>
     </dl>
   );

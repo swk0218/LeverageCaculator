@@ -10,6 +10,7 @@ import {
   purchaseRow,
   purchases,
   resultRegion,
+  selectProduct,
 } from './test-helpers';
 
 interface AxeViolation {
@@ -24,7 +25,7 @@ const axeScriptPath = require.resolve('axe-core/axe.min.js', {
   paths: [resolve(process.cwd(), 'apps/web')],
 });
 
-async function seriousAxeViolations(page: Page): Promise<AxeViolation[]> {
+async function axeViolations(page: Page): Promise<AxeViolation[]> {
   await page.addScriptTag({ path: axeScriptPath });
   const violations = await page.evaluate(async () => {
     const axe = (
@@ -46,9 +47,7 @@ async function seriousAxeViolations(page: Page): Promise<AxeViolation[]> {
     return result.violations;
   });
 
-  return violations.filter(
-    (violation) => violation.impact === 'critical' || violation.impact === 'serious',
-  );
+  return violations;
 }
 
 function formatViolations(violations: AxeViolation[]): string {
@@ -74,17 +73,15 @@ test.describe('keyboard and accessibility', () => {
     await gotoCalculator(page);
   });
 
-  test('has no serious axe violations on the initial and calculated states @a11y', async ({
-    page,
-  }) => {
-    const initialViolations = await seriousAxeViolations(page);
+  test('has no axe violations on the initial and calculated states @a11y', async ({ page }) => {
+    const initialViolations = await axeViolations(page);
     expect(initialViolations, formatViolations(initialViolations)).toEqual([]);
 
     await fillPurchase(page, 1, purchases.first);
     await page.getByRole('button', { name: '계산하기' }).click();
     await expect(resultRegion(page)).toBeVisible();
 
-    const resultViolations = await seriousAxeViolations(page);
+    const resultViolations = await axeViolations(page);
     expect(resultViolations, formatViolations(resultViolations)).toEqual([]);
   });
 
@@ -110,17 +107,16 @@ test.describe('keyboard and accessibility', () => {
     await expect(row.getByLabel('매수일')).toBeFocused();
     await row.getByLabel('매수일').fill(purchases.first.date);
 
-    const removeButton = page.getByRole('button', { name: '매수 1 삭제' });
-    await tabThroughNativeControl(page, removeButton);
-    await expect(removeButton).toBeFocused();
-    await page.keyboard.press('Tab');
+    await tabThroughNativeControl(page, row.getByLabel('매수가'));
     await expect(row.getByLabel('매수가')).toBeFocused();
     await row.getByLabel('매수가').fill(purchases.first.price);
     await page.keyboard.press('Tab');
     await expect(row.getByLabel('수량')).toBeFocused();
     await row.getByLabel('수량').fill(purchases.first.quantity);
     await page.keyboard.press('Tab');
-    await expect(page.getByRole('button', { name: '추가 매수' })).toBeFocused();
+    await expect(page.getByRole('button', { name: '매수내역 추가' })).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(page.getByRole('checkbox', { name: /이 기기에 입력 저장/ })).toBeFocused();
     await page.keyboard.press('Tab');
     await expect(page.getByRole('button', { name: '현재가 수정' })).toBeFocused();
     await page.keyboard.press('Tab');
@@ -135,5 +131,25 @@ test.describe('keyboard and accessibility', () => {
 
     await expect(resultRegion(page)).toBeVisible();
     await expect(resultRegion(page)).toBeFocused();
+  });
+
+  test('has no axe violations in mobile validation, partial result, and product-list states @a11y', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.getByRole('button', { name: '계산하기' }).click();
+    const validationViolations = await axeViolations(page);
+    expect(validationViolations, formatViolations(validationViolations)).toEqual([]);
+
+    await selectProduct(page, fixtureProducts.actualOnly);
+    await fillPurchase(page, 1, purchases.first);
+    await page.getByRole('button', { name: '계산하기' }).click();
+    await expect(resultRegion(page)).toBeVisible();
+    const partialResultViolations = await axeViolations(page);
+    expect(partialResultViolations, formatViolations(partialResultViolations)).toEqual([]);
+
+    await page.goto('/products/');
+    const productListViolations = await axeViolations(page);
+    expect(productListViolations, formatViolations(productListViolations)).toEqual([]);
   });
 });

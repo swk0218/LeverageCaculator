@@ -16,6 +16,7 @@ import { CompoundComparison } from './components/CompoundComparison';
 import { CurrentPriceControl } from './components/CurrentPriceControl';
 import { DataFreshnessNotice } from './components/DataFreshnessNotice';
 import { PartialAnalysisState } from './components/PartialAnalysisState';
+import { PersistenceControl } from './components/PersistenceControl';
 import { ProductSearch } from './components/ProductSearch';
 import { PurchaseList } from './components/PurchaseList';
 import { PurchaseSummary } from './components/PurchaseSummary';
@@ -25,6 +26,8 @@ import type { PurchaseDraft, PurchaseDraftErrors } from './types';
 import { useProductData } from './useProductData';
 
 const PRODUCT_DATA_MODE = import.meta.env.PUBLIC_DATA_MODE === 'live' ? 'live' : 'fixture';
+const DEFAULT_PRODUCT_CODE =
+  PRODUCT_DATA_MODE === 'fixture' ? (AVAILABLE_PRODUCTS[0]?.code ?? '') : '';
 
 const emptyDraft = (): PurchaseDraft => ({
   id: globalThis.crypto?.randomUUID?.() ?? `purchase-${Date.now()}-${Math.random()}`,
@@ -48,16 +51,23 @@ const todayInKorea = (): string => {
 
 export function CalculatorApp() {
   const products = AVAILABLE_PRODUCTS;
-  const [selectedCode, setSelectedCode] = useState(products[0]?.code ?? '');
+  const [selectedCode, setSelectedCode] = useState(DEFAULT_PRODUCT_CODE);
   const [drafts, setDrafts] = useState<PurchaseDraft[]>(() => [emptyDraft()]);
   const [manualPrice, setManualPrice] = useState<string | null>(null);
+  const [manualPriceDraft, setManualPriceDraft] = useState('');
+  const [persistInputs, setPersistInputs] = useState(false);
   const [isEditingPrice, setIsEditingPrice] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState(20);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [calculationError, setCalculationError] = useState<string | null>(null);
+  const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [statusMessage, setStatusMessage] = useState('');
+  const [focusDraftId, setFocusDraftId] = useState<string | null>(null);
   const [hasRestored, setHasRestored] = useState(false);
   const [dataRetryKey, setDataRetryKey] = useState(0);
   const resultRef = useRef<HTMLElement>(null);
+  const calculationErrorRef = useRef<HTMLElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const skipNextSaveRef = useRef(false);
   const {
     data,
@@ -73,7 +83,15 @@ export function CalculatorApp() {
       if (restored && products.some((product) => product.code === restored.productCode)) {
         setSelectedCode(restored.productCode);
         setDrafts(restored.purchases);
-        setManualPrice(restored.manualCurrentPrice);
+        const restoredManualPrice = restored.manualCurrentPrice;
+        const parsedManualPrice = restoredManualPrice ? parseInteger(restoredManualPrice) : 0;
+        setManualPrice(
+          restoredManualPrice && Number.isSafeInteger(parsedManualPrice) && parsedManualPrice >= 1
+            ? restoredManualPrice
+            : null,
+        );
+        setPersistInputs(true);
+        setStatusMessage('이 기기에 저장된 입력을 복원했습니다.');
       }
       setHasRestored(true);
     });
@@ -88,13 +106,18 @@ export function CalculatorApp() {
       skipNextSaveRef.current = false;
       return;
     }
+    if (!persistInputs) {
+      clearState();
+      return;
+    }
     saveState({
-      version: 1,
+      version: 2,
+      persistInputs: true,
       productCode: selectedCode,
       purchases: drafts,
       manualCurrentPrice: manualPrice,
     });
-  }, [drafts, hasRestored, manualPrice, selectedCode]);
+  }, [drafts, hasRestored, manualPrice, persistInputs, selectedCode]);
 
   const availableDates = useMemo(
     () =>
@@ -116,7 +139,8 @@ export function CalculatorApp() {
         const price = parseInteger(draft.price);
         const quantity = parseInteger(draft.quantity);
 
-        if (draft.date) {
+        if (!draft.date && submitAttempted) errors.date = '매수일을 입력해 주세요.';
+        else if (draft.date) {
           if (draft.date > today) errors.date = '미래 날짜는 입력할 수 없습니다.';
           else if (draft.date < data.product.listedDate)
             errors.date = `상장일(${data.product.listedDate.replaceAll('-', '.')}) 이후를 입력해 주세요.`;
@@ -126,9 +150,11 @@ export function CalculatorApp() {
 
         const validPrice = Number.isSafeInteger(price) && price >= 1;
         const validQuantity = Number.isSafeInteger(quantity) && quantity >= 1;
-        if (draft.price && !validPrice)
+        if (!draft.price && submitAttempted) errors.price = '매수가를 입력해 주세요.';
+        else if (draft.price && !validPrice)
           errors.price = '매수가는 안전한 계산 범위의 1원 이상 정수로 입력해 주세요.';
-        if (draft.quantity && !validQuantity)
+        if (!draft.quantity && submitAttempted) errors.quantity = '수량을 입력해 주세요.';
+        else if (draft.quantity && !validQuantity)
           errors.quantity = '수량은 안전한 계산 범위의 1주 이상 정수로 입력해 주세요.';
         if (validPrice && validQuantity && !Number.isSafeInteger(price * quantity))
           errors.price = '이 매수분의 금액이 안전한 계산 범위를 벗어났습니다.';
@@ -136,7 +162,7 @@ export function CalculatorApp() {
         return [draft.id, errors];
       }),
     );
-  }, [availableDates, data, drafts]);
+  }, [availableDates, data, drafts, submitAttempted]);
 
   const purchasesForSummary = useMemo<Purchase[]>(
     () =>
@@ -174,9 +200,9 @@ export function CalculatorApp() {
   const summary = summaryState.summary;
   const currentPrice =
     manualPrice !== null ? parseInteger(manualPrice) : data?.latest.product.close;
-  const manualPriceError =
-    manualPrice !== null &&
-    (currentPrice === undefined || !Number.isSafeInteger(currentPrice) || currentPrice < 1)
+  const manualPriceDraftValue = parseInteger(manualPriceDraft);
+  const manualPriceDraftError =
+    isEditingPrice && (!Number.isSafeInteger(manualPriceDraftValue) || manualPriceDraftValue < 1)
       ? '현재가는 안전한 계산 범위의 1원 이상 정수로 입력해 주세요.'
       : undefined;
   const hasEmptyFields = drafts.some((draft) => !draft.date || !draft.price || !draft.quantity);
@@ -185,40 +211,127 @@ export function CalculatorApp() {
     Boolean(data && currentPrice && Number.isFinite(currentPrice) && currentPrice > 0) &&
     !hasEmptyFields &&
     !hasFieldErrors &&
-    !manualPriceError &&
+    !isEditingPrice &&
     !summaryState.error;
+  const hasPurchaseInput =
+    drafts.length > 1 || drafts.some((draft) => draft.date || draft.price || draft.quantity);
+  const hasResettableState =
+    selectedCode !== DEFAULT_PRODUCT_CODE ||
+    hasPurchaseInput ||
+    manualPrice !== null ||
+    persistInputs;
+
+  const calculateHelp = (() => {
+    if (isEditingPrice) return '현재가 변경을 적용하거나 취소해 주세요.';
+    if (hasFieldErrors) return '입력칸 아래의 오류 안내를 확인해 주세요.';
+    if (summaryState.error) return summaryState.error;
+    if (drafts.some((draft) => !draft.date)) return '매수일을 입력하면 계산할 수 있습니다.';
+    if (drafts.some((draft) => !draft.price)) return '매수가를 입력하면 계산할 수 있습니다.';
+    if (drafts.some((draft) => !draft.quantity)) return '수량을 입력하면 계산할 수 있습니다.';
+    if (!data) return '가격 데이터를 불러온 뒤 계산할 수 있습니다.';
+    return '입력값은 이 브라우저 안에서만 계산됩니다.';
+  })();
+
+  const invalidateResult = () => {
+    setResult(null);
+    setCalculationError(null);
+  };
 
   const updateDraft = (id: string, field: keyof Omit<PurchaseDraft, 'id'>, value: string) => {
     setDrafts((current) =>
       current.map((draft) => (draft.id === id ? { ...draft, [field]: value } : draft)),
     );
-    setResult(null);
-    setCalculationError(null);
+    setFocusDraftId(null);
+    invalidateResult();
   };
 
   const removeDraft = (id: string) => {
-    setDrafts((current) => {
-      if (current.length === 1) return [emptyDraft()];
-      return current.filter((draft) => draft.id !== id);
+    if (drafts.length === 1) return;
+    const removedIndex = drafts.findIndex((draft) => draft.id === id);
+    const remaining = drafts.filter((draft) => draft.id !== id);
+    const nextFocus = remaining[Math.min(Math.max(removedIndex, 0), remaining.length - 1)];
+    setDrafts(remaining);
+    setFocusDraftId(nextFocus?.id ?? null);
+    setStatusMessage('매수내역 한 건을 삭제했습니다.');
+    invalidateResult();
+    requestAnimationFrame(() => {
+      if (!nextFocus) return;
+      const row = [...document.querySelectorAll<HTMLElement>('[data-purchase-id]')].find(
+        (element) => element.dataset.purchaseId === nextFocus.id,
+      );
+      row?.querySelector<HTMLInputElement>('input[type="date"]')?.focus();
     });
-    setResult(null);
-    setCalculationError(null);
+  };
+
+  const addDraft = () => {
+    if (drafts.length >= 50) return;
+    const nextDraft = emptyDraft();
+    setDrafts((current) => [...current, nextDraft]);
+    setFocusDraftId(nextDraft.id);
+    setSubmitAttempted(false);
+    invalidateResult();
+    setStatusMessage(`매수 ${drafts.length + 1} 입력란을 추가했습니다.`);
+  };
+
+  const selectProduct = (code: string): boolean => {
+    if (code === selectedCode) return true;
+    if (
+      (hasPurchaseInput || manualPrice !== null) &&
+      !globalThis.confirm(
+        '상품을 바꾸면 현재 매수내역과 직접 입력한 현재가가 지워집니다. 계속할까요?',
+      )
+    ) {
+      return false;
+    }
+
+    setSelectedCode(code);
+    setDataRetryKey(0);
+    setDrafts([emptyDraft()]);
+    setFocusDraftId(null);
+    setManualPrice(null);
+    setManualPriceDraft('');
+    setIsEditingPrice(false);
+    setSelectedPeriod(20);
+    setSubmitAttempted(false);
+    invalidateResult();
+    setStatusMessage('상품을 변경하고 새 입력을 준비했습니다.');
+    return true;
   };
 
   const resetAll = () => {
+    if (
+      (hasPurchaseInput || manualPrice !== null) &&
+      !globalThis.confirm('입력한 매수내역과 이 브라우저에 저장된 값을 모두 지울까요?')
+    ) {
+      return;
+    }
     skipNextSaveRef.current = true;
     clearState();
-    setSelectedCode(products[0]?.code ?? '');
+    setSelectedCode(DEFAULT_PRODUCT_CODE);
     setDrafts([emptyDraft()]);
+    setFocusDraftId(null);
     setManualPrice(null);
+    setManualPriceDraft('');
+    setPersistInputs(false);
     setIsEditingPrice(false);
     setSelectedPeriod(20);
-    setResult(null);
-    setCalculationError(null);
+    setSubmitAttempted(false);
+    invalidateResult();
+    setStatusMessage('입력과 이 브라우저에 저장된 값을 모두 지웠습니다.');
+    requestAnimationFrame(() => searchInputRef.current?.focus());
   };
 
   const calculate = () => {
-    if (!data || !canCalculate || currentPrice === undefined) return;
+    setSubmitAttempted(true);
+    if (!data || !canCalculate || currentPrice === undefined) {
+      requestAnimationFrame(() => {
+        const firstInvalid = document.querySelector<HTMLInputElement>(
+          '.calculator-frame input:invalid, .calculator-frame input[aria-invalid="true"]',
+        );
+        firstInvalid?.focus();
+      });
+      return;
+    }
     const purchases: Purchase[] = drafts.map((draft) => ({
       id: draft.id,
       date: draft.date,
@@ -252,6 +365,10 @@ export function CalculatorApp() {
       setCalculationError(
         error instanceof Error ? error.message : '계산 중 알 수 없는 오류가 발생했습니다.',
       );
+      requestAnimationFrame(() => {
+        calculationErrorRef.current?.focus({ preventScroll: true });
+        calculationErrorRef.current?.scrollIntoView({ behavior: 'auto', block: 'start' });
+      });
     }
   };
 
@@ -264,6 +381,7 @@ export function CalculatorApp() {
   const mismatch = Boolean(
     data?.latest.underlying && data.latest.underlying.date !== data.latest.product.date,
   );
+  const resultWarnings = data && result ? [...new Set([...data.warnings, ...result.warnings])] : [];
 
   return (
     <div
@@ -271,9 +389,16 @@ export function CalculatorApp() {
       data-testid="calculator-root"
       data-hydrated={hasRestored ? 'true' : 'false'}
     >
-      <div className="calculator-frame">
+      <form
+        className="calculator-frame"
+        noValidate
+        onSubmit={(event) => {
+          event.preventDefault();
+          calculate();
+        }}
+      >
         <DataFreshnessNotice
-          mode={PRODUCT_DATA_MODE}
+          analysisCapability={data?.product.analysisCapability ?? 'actual-only'}
           stale={data?.stale.isStale ?? false}
           date={data?.stale.asOf ?? ''}
           mismatch={mismatch}
@@ -281,14 +406,8 @@ export function CalculatorApp() {
         <ProductSearch
           products={products}
           selectedCode={selectedCode}
-          onSelect={(code) => {
-            setSelectedCode(code);
-            setDataRetryKey(0);
-            setManualPrice(null);
-            setIsEditingPrice(false);
-            setResult(null);
-            setCalculationError(null);
-          }}
+          inputRef={searchInputRef}
+          onSelect={selectProduct}
         />
 
         {isLoading && (
@@ -314,15 +433,26 @@ export function CalculatorApp() {
             <PurchaseList
               drafts={drafts}
               errors={draftErrors}
+              focusDraftId={focusDraftId}
               maxDate={todayInKorea()}
               minDate={data.product.listedDate}
               onChange={updateDraft}
               onRemove={removeDraft}
-              onAdd={() => {
-                if (drafts.length < 50) setDrafts((current) => [...current, emptyDraft()]);
-              }}
+              onAdd={addDraft}
             />
             <PurchaseSummary {...summary} />
+            <PersistenceControl
+              checked={persistInputs}
+              onChange={(checked) => {
+                setPersistInputs(checked);
+                if (!checked) clearState();
+                setStatusMessage(
+                  checked
+                    ? '입력을 이 기기에 30일간 저장합니다.'
+                    : '저장을 끄고 이 기기의 저장값을 삭제했습니다.',
+                );
+              }}
+            />
             {summaryState.error && (
               <p className="summary-error" role="alert">
                 {summaryState.error}
@@ -332,32 +462,57 @@ export function CalculatorApp() {
               officialPrice={data.latest.product.close}
               officialDate={data.latest.product.date}
               manualPrice={manualPrice}
+              draftPrice={manualPriceDraft}
               isEditing={isEditingPrice}
-              error={manualPriceError}
-              onEdit={() => setIsEditingPrice(true)}
-              onManualPriceChange={(value) => {
-                setManualPrice(value);
-                setResult(null);
-                setCalculationError(null);
+              error={manualPriceDraftError}
+              onEdit={() => {
+                const value = manualPrice ?? `${data.latest.product.close}`;
+                setManualPriceDraft(value.replace(/\B(?=(\d{3})+(?!\d))/g, ','));
+                setIsEditingPrice(true);
+              }}
+              onDraftPriceChange={setManualPriceDraft}
+              onApply={() => {
+                if (manualPriceDraftError) return;
+                setManualPrice(manualPriceDraft);
+                setIsEditingPrice(false);
+                invalidateResult();
+                setStatusMessage('직접 입력한 현재가를 적용했습니다.');
+              }}
+              onCancel={() => {
+                setManualPriceDraft('');
+                setIsEditingPrice(false);
               }}
               onUseOfficial={() => {
                 setManualPrice(null);
+                setManualPriceDraft('');
                 setIsEditingPrice(false);
-                setResult(null);
+                invalidateResult();
+                setStatusMessage('공식 종가를 다시 사용합니다.');
               }}
             />
             <div className="calculator-actions">
-              <CalculateButton disabled={!canCalculate} onCalculate={calculate} />
-              <button type="button" className="reset-button" onClick={resetAll}>
-                전체 초기화
-              </button>
+              <CalculateButton ready={canCalculate} help={calculateHelp} />
+              {hasResettableState && (
+                <button type="button" className="reset-button" onClick={resetAll}>
+                  입력 및 저장값 지우기
+                </button>
+              )}
             </div>
           </>
         )}
-      </div>
+      </form>
+
+      <p className="sr-only" role="status" aria-live="polite">
+        {statusMessage}
+      </p>
 
       {calculationError && (
-        <section className="result-area error-state" role="alert">
+        <section
+          className="result-area error-state"
+          role="alert"
+          tabIndex={-1}
+          ref={calculationErrorRef}
+        >
           <h2>계산할 수 없습니다.</h2>
           <p>{calculationError}</p>
         </section>
@@ -367,7 +522,6 @@ export function CalculatorApp() {
         <section
           className="result-area"
           aria-labelledby="result-heading"
-          aria-live="polite"
           tabIndex={-1}
           ref={resultRef}
         >
@@ -381,6 +535,9 @@ export function CalculatorApp() {
               · 공식 분석 기준 {result.analysisDate?.replaceAll('-', '.') ?? '분석 불가'}
             </p>
           </div>
+          {data.product.analysisCapability === 'actual-only' && (
+            <PartialAnalysisState warnings={resultWarnings} />
+          )}
           <ResultSummary
             product={data.product}
             result={result}
@@ -397,13 +554,17 @@ export function CalculatorApp() {
               onPeriodChange={setSelectedPeriod}
             />
           )}
-          <CompoundComparison product={data.product} result={result} />
+          {data.product.analysisCapability === 'full' && (
+            <CompoundComparison product={data.product} result={result} />
+          )}
           <ActualDetail
             result={result}
             currentPriceDate={data.latest.product.date}
             usingManualPrice={manualPrice !== null}
           />
-          <PartialAnalysisState warnings={[...data.warnings, ...result.warnings]} />
+          {data.product.analysisCapability === 'full' && (
+            <PartialAnalysisState warnings={resultWarnings} />
+          )}
         </section>
       )}
     </div>

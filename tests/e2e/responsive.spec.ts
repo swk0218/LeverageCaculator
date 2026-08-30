@@ -31,7 +31,7 @@ test('keeps the three-row result and advertising clear of controls at 360px', as
   await calculate(page);
   await expectNoHorizontalOverflow(page);
 
-  for (const controlName of ['추가 매수', '계산하기', '전체 초기화']) {
+  for (const controlName of ['매수내역 추가', '계산하기', '입력 및 저장값 지우기']) {
     const control = page.getByRole('button', { name: controlName });
     const box = await control.boundingBox();
     expect(box, `${controlName} control must be rendered`).not.toBeNull();
@@ -41,7 +41,9 @@ test('keeps the three-row result and advertising clear of controls at 360px', as
   }
 
   const adSlots = page.getByRole('complementary', { name: '광고' });
-  const actionButtons = page.getByRole('button', { name: /추가 매수|계산하기|현재가 수정/ });
+  const actionButtons = page.getByRole('button', {
+    name: /매수내역 추가|계산하기|현재가 수정/,
+  });
   for (let adIndex = 0; adIndex < (await adSlots.count()); adIndex += 1) {
     const adBox = await adSlots.nth(adIndex).boundingBox();
     if (adBox === null) continue;

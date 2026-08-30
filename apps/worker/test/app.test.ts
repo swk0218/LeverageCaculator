@@ -26,7 +26,22 @@ class FixtureRepository implements IngestionRepository {
 
   health(scope: CatalogScope): Promise<RepositoryHealth> {
     void scope;
-    return Promise.resolve({ database: 'ok', latestTradeDate: '2026-08-25' });
+    return Promise.resolve({
+      database: 'ok',
+      latestTradeDate: '2026-08-25',
+      products: fixtureCatalog.map(({ product }) => ({
+        code: product.code,
+        latestTradeDate: '2026-08-25',
+      })),
+      lastSync: {
+        status: 'success',
+        startedAt: '2026-08-26T05:30:00.000Z',
+        finishedAt: '2026-08-26T05:30:01.000Z',
+        latestTradeDate: '2026-08-25',
+        recordCount: 10,
+        errorSummary: null,
+      },
+    });
   }
 
   listProducts(scope: CatalogScope): Promise<Product[]> {
@@ -156,10 +171,68 @@ describe('Worker HTTP contract', () => {
 
   it('reports health and stale state without claiming a stale cache is healthy', async () => {
     const repository = new FixtureRepository();
-    repository.health = () => Promise.resolve({ database: 'ok', latestTradeDate: '2026-08-20' });
+    repository.health = () =>
+      Promise.resolve({
+        database: 'ok',
+        latestTradeDate: '2026-08-25',
+        products: [
+          { code: 'F2UP01', latestTradeDate: '2026-08-25' },
+          { code: 'F2DN01', latestTradeDate: '2026-08-20' },
+          { code: 'FMIS01', latestTradeDate: null },
+        ],
+        lastSync: {
+          status: 'success',
+          startedAt: '2026-08-26T05:30:00.000Z',
+          finishedAt: '2026-08-26T05:30:01.000Z',
+          latestTradeDate: '2026-08-25',
+          recordCount: 10,
+          errorSummary: null,
+        },
+      });
     const { app } = fixtureApp(repository);
     const response = await app.fetch(new Request('https://api.example/api/v1/health'));
-    expect(await response.json()).toMatchObject({ status: 'degraded', stale: true });
+    expect(await response.json()).toMatchObject({
+      status: 'degraded',
+      latestTradeDate: '2026-08-25',
+      stale: true,
+      coverage: {
+        activeProducts: 3,
+        freshProducts: 1,
+        staleProducts: 1,
+        missingProducts: 1,
+        complete: false,
+      },
+      lastSync: { state: 'success' },
+    });
+  });
+
+  it('fails health closed when the latest sync failed even if every product is fresh', async () => {
+    const repository = new FixtureRepository();
+    repository.health = () =>
+      Promise.resolve({
+        database: 'ok',
+        latestTradeDate: '2026-08-25',
+        products: fixtureCatalog.map(({ product }) => ({
+          code: product.code,
+          latestTradeDate: '2026-08-25',
+        })),
+        lastSync: {
+          status: 'failed',
+          startedAt: '2026-08-26T05:30:00.000Z',
+          finishedAt: '2026-08-26T05:30:01.000Z',
+          latestTradeDate: '2026-08-25',
+          recordCount: 4,
+          errorSummary: 'PARTIAL_SYNC_FAILED:1/3:Error',
+        },
+      });
+    const { app } = fixtureApp(repository);
+    const response = await app.fetch(new Request('https://api.example/api/v1/health'));
+    expect(await response.json()).toMatchObject({
+      status: 'degraded',
+      stale: false,
+      coverage: { complete: true },
+      lastSync: { state: 'partial', recordCount: 4 },
+    });
   });
 
   it('limits CORS and rejects extra query fields so financial inputs are never accepted', async () => {
@@ -205,6 +278,36 @@ describe('Worker HTTP contract', () => {
     );
     expect(accepted.status).toBe(202);
     expect(runBackfill).toHaveBeenCalledWith({ from: '2026-08-01', to: '2026-08-25' });
+  });
+
+  it('rejects every backfill request body even without Content-Length', async () => {
+    const { app, runBackfill } = fixtureApp();
+    const url = 'https://api.example/api/v1/admin/backfill?from=2026-08-01&to=2026-08-25';
+    const headers = { authorization: 'Bearer this-is-a-long-test-token' };
+
+    const stringRequest = new Request(url, { method: 'POST', headers, body: '{}' });
+    expect(stringRequest.headers.get('content-length')).toBeNull();
+    const stringResponse = await app.fetch(stringRequest);
+    expect(stringResponse.status).toBe(400);
+    expect(await stringResponse.json()).toMatchObject({ error: { code: 'BODY_NOT_ALLOWED' } });
+
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('{"chunked":true}'));
+        controller.close();
+      },
+    });
+    const streamRequest = new Request(url, {
+      method: 'POST',
+      headers,
+      body: stream,
+      duplex: 'half',
+    } as RequestInit & { duplex: 'half' });
+    expect(streamRequest.headers.get('content-length')).toBeNull();
+    const streamResponse = await app.fetch(streamRequest);
+    expect(streamResponse.status).toBe(400);
+    expect(await streamResponse.json()).toMatchObject({ error: { code: 'BODY_NOT_ALLOWED' } });
+    expect(runBackfill).not.toHaveBeenCalled();
   });
 });
 
@@ -270,6 +373,77 @@ describe('scheduled ingestion', () => {
       status: 'failed',
       recordCount: 0,
       errorSummary: 'Error',
+    });
+  });
+
+  it('persists successful targets but records and throws a partial sync when another target fails', async () => {
+    const repository = new FixtureRepository();
+    const fixtureProvider = new FixtureMarketDataProvider();
+    const failedCode = fixtureCatalog[1]!.product.code;
+    const provider: MarketDataProvider = {
+      mode: 'live',
+      fetchProductData: (product, range) =>
+        product.code === failedCode
+          ? Promise.reject(new Error('secret partial failure'))
+          : fixtureProvider.fetchProductData(product, range),
+    };
+    const targets = fixtureCatalog.slice(0, 2).map(({ product }) => ({
+      product,
+      metadata: { scope: 'fixture' as const, verificationStatus: 'fixture' as const },
+    }));
+
+    await expect(
+      runIngestion(
+        repository,
+        provider,
+        targets,
+        { from: '2026-08-17', to: '2026-08-25' },
+        () => new Date('2026-08-26T05:30:00.000Z'),
+      ),
+    ).rejects.toThrow('secret partial failure');
+    expect(repository.priceKeys.size).toBeGreaterThan(0);
+    expect(repository.finished.at(-1)).toMatchObject({
+      status: 'failed',
+      errorSummary: 'PARTIAL_SYNC_FAILED:1/2:Error',
+    });
+    expect(repository.finished.at(-1)?.recordCount).toBeGreaterThan(0);
+  });
+
+  it('does not report success when only some targets return rows', async () => {
+    const repository = new FixtureRepository();
+    const fixtureProvider = new FixtureMarketDataProvider();
+    const emptyCode = fixtureCatalog[1]!.product.code;
+    const provider: MarketDataProvider = {
+      mode: 'fixture',
+      async fetchProductData(product, range) {
+        const data = await fixtureProvider.fetchProductData(product, range);
+        if (product.code !== emptyCode) return data;
+        return {
+          ...data,
+          productSeries: { ...data.productSeries, prices: [] },
+          ...(data.underlyingSeries === undefined
+            ? {}
+            : { underlyingSeries: { ...data.underlyingSeries, prices: [] } }),
+        };
+      },
+    };
+    const targets = fixtureCatalog.slice(0, 2).map(({ product }) => ({
+      product,
+      metadata: { scope: 'fixture' as const, verificationStatus: 'fixture' as const },
+    }));
+
+    await expect(
+      runIngestion(
+        repository,
+        provider,
+        targets,
+        { from: '2026-08-17', to: '2026-08-25' },
+        () => new Date('2026-08-26T05:30:00.000Z'),
+      ),
+    ).rejects.toThrow('PARTIAL_SYNC_EMPTY');
+    expect(repository.finished.at(-1)).toMatchObject({
+      status: 'failed',
+      errorSummary: 'PARTIAL_SYNC_EMPTY:1/2',
     });
   });
 });

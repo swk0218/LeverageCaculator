@@ -15,8 +15,13 @@ export function withoutSiteBase(pathname: string): string {
   const base = configuredBase === '/' ? '' : configuredBase.replace(/\/$/, '');
   const normalizedPath = pathname.startsWith('/') ? pathname : `/${pathname}`;
 
-  if (!base) return normalizedPath || '/';
-  if (normalizedPath === base) return '/';
-  if (normalizedPath.startsWith(`${base}/`)) return normalizedPath.slice(base.length) || '/';
-  return normalizedPath || '/';
+  const withoutBase =
+    !base || normalizedPath === base
+      ? normalizedPath === base
+        ? '/'
+        : normalizedPath
+      : normalizedPath.startsWith(`${base}/`)
+        ? normalizedPath.slice(base.length)
+        : normalizedPath;
+  return withoutBase === '/' ? '/' : withoutBase.replace(/\/+$/u, '') || '/';
 }

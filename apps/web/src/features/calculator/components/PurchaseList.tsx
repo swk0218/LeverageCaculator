@@ -4,6 +4,7 @@ import { PurchaseRow } from './PurchaseRow';
 interface Props {
   drafts: PurchaseDraft[];
   errors: Record<string, PurchaseDraftErrors>;
+  focusDraftId: string | null;
   maxDate: string;
   minDate?: string;
   onChange: (id: string, field: keyof Omit<PurchaseDraft, 'id'>, value: string) => void;
@@ -14,6 +15,7 @@ interface Props {
 export function PurchaseList({
   drafts,
   errors,
+  focusDraftId,
   maxDate,
   minDate,
   onChange,
@@ -24,9 +26,6 @@ export function PurchaseList({
     <section className="calculator-section" aria-labelledby="purchase-heading">
       <div className="section-heading-row">
         <div>
-          <p className="section-step section-label" aria-hidden="true">
-            02
-          </p>
           <h2 id="purchase-heading">매수내역</h2>
         </div>
         <span className="section-hint">현재 보유 중인 매수분만 입력</span>
@@ -38,6 +37,8 @@ export function PurchaseList({
             index={index}
             draft={draft}
             errors={errors[draft.id] ?? {}}
+            canRemove={drafts.length > 1}
+            focusOnMount={draft.id === focusDraftId}
             maxDate={maxDate}
             minDate={minDate}
             onChange={onChange}
@@ -46,11 +47,10 @@ export function PurchaseList({
         ))}
       </div>
       <button className="add-purchase" type="button" disabled={drafts.length >= 50} onClick={onAdd}>
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M12 4v16M4 12h16" />
-        </svg>
-        추가 매수
-        <span>{drafts.length}/50</span>
+        매수내역 추가
+        {drafts.length > 1 && (
+          <span>{drafts.length >= 50 ? '최대 50개' : `${drafts.length}개 입력 중`}</span>
+        )}
       </button>
     </section>
   );

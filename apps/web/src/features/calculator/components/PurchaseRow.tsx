@@ -1,11 +1,14 @@
-import { useId } from 'react';
+import { useEffect, useId, useRef } from 'react';
 
+import { Icon } from '@astryxdesign/core/Icon';
 import type { PurchaseDraft, PurchaseDraftErrors } from '../types';
 
 interface Props {
   index: number;
   draft: PurchaseDraft;
   errors: PurchaseDraftErrors;
+  canRemove: boolean;
+  focusOnMount: boolean;
   maxDate: string;
   minDate?: string;
   onChange: (id: string, field: keyof Omit<PurchaseDraft, 'id'>, value: string) => void;
@@ -19,22 +22,38 @@ const formatIntegerInput = (value: string): string => {
   return digits ? digits.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : '';
 };
 
-export function PurchaseRow({ index, draft, errors, maxDate, minDate, onChange, onRemove }: Props) {
+export function PurchaseRow({
+  index,
+  draft,
+  errors,
+  canRemove,
+  focusOnMount,
+  maxDate,
+  minDate,
+  onChange,
+  onRemove,
+}: Props) {
   const dateId = useId();
   const priceId = useId();
   const quantityId = useId();
   const dateErrorId = `${dateId}-error`;
   const priceErrorId = `${priceId}-error`;
   const quantityErrorId = `${quantityId}-error`;
+  const dateInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (focusOnMount) dateInputRef.current?.focus();
+  }, [focusOnMount]);
 
   return (
-    <fieldset className="purchase-row">
+    <fieldset className="purchase-row" data-purchase-id={draft.id}>
       <legend>매수 {index + 1}</legend>
-      <div className="purchase-row-top">
+      <div className={`purchase-row-grid ${canRemove ? '' : 'single-row'}`}>
         <div className={`field date-field ${errors.date ? 'field-error' : ''}`}>
           <label htmlFor={dateId}>매수일</label>
           <input
             id={dateId}
+            ref={dateInputRef}
             type="date"
             min={minDate}
             max={maxDate}
@@ -50,66 +69,70 @@ export function PurchaseRow({ index, draft, errors, maxDate, minDate, onChange, 
             </span>
           )}
         </div>
-        <button
-          className="remove-row"
-          type="button"
-          aria-label={`매수 ${index + 1} 삭제`}
-          onClick={() => onRemove(draft.id)}
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M5 5 19 19M19 5 5 19" />
-          </svg>
-        </button>
-      </div>
-      <div className="purchase-values">
-        <div className={`field ${errors.price ? 'field-error' : ''}`}>
-          <label htmlFor={priceId}>매수가</label>
-          <div className="unit-input">
-            <input
-              id={priceId}
-              type="text"
-              inputMode="numeric"
-              autoComplete="off"
-              required
-              value={draft.price}
-              aria-invalid={Boolean(errors.price)}
-              aria-describedby={errors.price ? priceErrorId : undefined}
-              onChange={(event) =>
-                onChange(draft.id, 'price', formatIntegerInput(event.currentTarget.value))
-              }
-            />
-            <span>원</span>
+        <div className="purchase-values">
+          <div className={`field ${errors.price ? 'field-error' : ''}`}>
+            <label htmlFor={priceId}>매수가</label>
+            <div className="unit-input">
+              <input
+                id={priceId}
+                aria-label="매수가 (원)"
+                type="text"
+                inputMode="numeric"
+                enterKeyHint="next"
+                autoComplete="off"
+                required
+                value={draft.price}
+                aria-invalid={Boolean(errors.price)}
+                aria-describedby={errors.price ? priceErrorId : undefined}
+                onChange={(event) =>
+                  onChange(draft.id, 'price', formatIntegerInput(event.currentTarget.value))
+                }
+              />
+              <span aria-hidden="true">원</span>
+            </div>
+            {errors.price && (
+              <span id={priceErrorId} className="field-message" role="alert">
+                {errors.price}
+              </span>
+            )}
           </div>
-          {errors.price && (
-            <span id={priceErrorId} className="field-message" role="alert">
-              {errors.price}
-            </span>
-          )}
-        </div>
-        <div className={`field ${errors.quantity ? 'field-error' : ''}`}>
-          <label htmlFor={quantityId}>수량</label>
-          <div className="unit-input">
-            <input
-              id={quantityId}
-              type="text"
-              inputMode="numeric"
-              autoComplete="off"
-              required
-              value={draft.quantity}
-              aria-invalid={Boolean(errors.quantity)}
-              aria-describedby={errors.quantity ? quantityErrorId : undefined}
-              onChange={(event) =>
-                onChange(draft.id, 'quantity', formatIntegerInput(event.currentTarget.value))
-              }
-            />
-            <span>주</span>
+          <div className={`field ${errors.quantity ? 'field-error' : ''}`}>
+            <label htmlFor={quantityId}>수량</label>
+            <div className="unit-input">
+              <input
+                id={quantityId}
+                aria-label="수량 (주)"
+                type="text"
+                inputMode="numeric"
+                enterKeyHint="done"
+                autoComplete="off"
+                required
+                value={draft.quantity}
+                aria-invalid={Boolean(errors.quantity)}
+                aria-describedby={errors.quantity ? quantityErrorId : undefined}
+                onChange={(event) =>
+                  onChange(draft.id, 'quantity', formatIntegerInput(event.currentTarget.value))
+                }
+              />
+              <span aria-hidden="true">주</span>
+            </div>
+            {errors.quantity && (
+              <span id={quantityErrorId} className="field-message" role="alert">
+                {errors.quantity}
+              </span>
+            )}
           </div>
-          {errors.quantity && (
-            <span id={quantityErrorId} className="field-message" role="alert">
-              {errors.quantity}
-            </span>
-          )}
         </div>
+        {canRemove && (
+          <button
+            className="remove-row"
+            type="button"
+            aria-label={`매수 ${index + 1} 삭제`}
+            onClick={() => onRemove(draft.id)}
+          >
+            <Icon icon="close" size="md" aria-hidden="true" />
+          </button>
+        )}
       </div>
     </fieldset>
   );

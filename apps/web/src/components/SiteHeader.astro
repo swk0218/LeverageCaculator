@@ -30,12 +30,7 @@ const items = [
     </nav>
 
     <details class="mobile-nav">
-      <summary aria-label="메뉴 열기">
-        <span aria-hidden="true">메뉴</span>
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M4 7h16M4 12h16M4 17h16" />
-        </svg>
-      </summary>
+      <summary aria-label="주요 메뉴">메뉴</summary>
       <nav aria-label="모바일 주요 메뉴">
         <ul>
           {items.map((item) => (
@@ -153,14 +148,6 @@ const items = [
 
   .mobile-nav summary::-webkit-details-marker {
     display: none;
-  }
-
-  .mobile-nav summary svg {
-    width: 18px;
-    height: 18px;
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 2;
   }
 
   .mobile-nav[open] summary {

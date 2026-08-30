@@ -15,14 +15,14 @@ const isEnabled = Boolean(client && slot && consentReady && dataMode === 'live')
 const label = placement === 'result' ? '계산 결과 광고' : '콘텐츠 광고';
 ---
 
-<aside
-  class={`ad-slot ad-slot--${placement}`}
-  aria-label={label}
-  data-ad-placement={placement}
-  data-ad-state={isEnabled ? 'enabled' : 'preview'}
->
-  {
-    isEnabled ? (
+{
+  isEnabled && (
+    <aside
+      class={`ad-slot ad-slot--${placement}`}
+      aria-label={label}
+      data-ad-placement={placement}
+      data-ad-state="enabled"
+    >
       <ins
         class="adsbygoogle"
         style="display:block"
@@ -31,11 +31,9 @@ const label = placement === 'result' ? '계산 결과 광고' : '콘텐츠 광�
         data-ad-format="auto"
         data-full-width-responsive="true"
       />
-    ) : (
-      <div class="ad-placeholder"><span>광고 영역</span></div>
-    )
-  }
-</aside>
+    </aside>
+  )
+}
 {
   isEnabled && (
     <script
@@ -58,16 +56,5 @@ const label = placement === 'result' ? '계산 결과 광고' : '콘텐츠 광�
 
   .ad-slot--content {
     margin: 64px 0;
-  }
-
-  .ad-placeholder {
-    display: grid;
-    min-height: 112px;
-    place-items: center;
-    border: 1px dashed color-mix(in srgb, var(--yb-muted) 42%, var(--yb-border));
-    background: color-mix(in srgb, var(--yb-surface) 78%, var(--yb-bg));
-    color: var(--yb-muted);
-    font-size: 12px;
-    letter-spacing: 0.08em;
   }
 </style>

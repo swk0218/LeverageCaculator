@@ -128,12 +128,6 @@ a {
   margin: 0 auto;
 }
 
-.section-label {
-  /* Compact step labels keep the hierarchy clear without decorative game styling. */
-  font-family: inherit;
-  letter-spacing: -0.04em;
-}
-
 .tabular {
   font-variant-numeric: tabular-nums;
 }

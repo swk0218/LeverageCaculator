@@ -43,6 +43,18 @@ export interface LatestProductData {
 export interface RepositoryHealth {
   database: 'ok' | 'unavailable';
   latestTradeDate: string | null;
+  products: readonly {
+    code: string;
+    latestTradeDate: string | null;
+  }[];
+  lastSync: {
+    status: 'running' | 'success' | 'empty' | 'failed';
+    startedAt: string;
+    finishedAt: string | null;
+    latestTradeDate: string | null;
+    recordCount: number;
+    errorSummary: string | null;
+  } | null;
 }
 
 export interface ReadRepository {

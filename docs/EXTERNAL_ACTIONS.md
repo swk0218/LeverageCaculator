@@ -5,15 +5,19 @@ secret을 가진 사용자가 수행해야 하며, 완료 전에는 운영 배�
 
 ## 1. 공공데이터포털 service key
 
-- 수행 위치: data.go.kr의 금융위원회 주식·증권상품·시장지수 API 활용신청 화면
+- 수행 위치: 공공데이터포털의 [주식시세정보](https://www.data.go.kr/data/15094808/openapi.do),
+  [증권상품시세정보](https://www.data.go.kr/data/15094806/openapi.do),
+  [시장지수시세정보](https://www.data.go.kr/data/15094807/openapi.do) 활용신청 화면
 - 필요한 값: 승인된 `DATA_GO_KR_SERVICE_KEY`
-- 등록: `pnpm --dir=apps/worker exec wrangler secret put DATA_GO_KR_SERVICE_KEY --env production`
-- 성공 확인: 최초 backfill 후 `/api/v1/health`가 `mode: live`, 대표
-  `/api/v1/analysis-data`가 HTTP 200과 실제 거래일을 반환
+- 등록: GitHub 저장소 **Settings → Secrets and variables → Actions**의 repository Secret
+- 현재 증거: 2026-08-30 `DATA_GO_KR_SERVICE_KEY` 이름과 갱신 시각을 GitHub API로 확인함.
+  값은 조회하지 않았고 조회할 수도 없다.
+- 성공 확인: Actions 생성 step이 18개 상품을 모두 검증하고 Pages artifact의 대표
+  `/data/analysis/<종목코드>.json`이 실제 거래 기준일을 반환
 - 실패 확인: 활용 승인 상태, 키 인코딩 형식, 일일 호출 한도, operation URL, Worker log의
   안전한 오류 code를 확인한다. 키나 upstream 전체 URL을 로그에 복사하지 않는다.
 
-## 2. Cloudflare 계정, API 권한, D1
+## 2. 선택 사항: Cloudflare 계정, API 권한, D1
 
 - 수행 위치: Cloudflare Dashboard 또는 Wrangler
 - 필요한 값: 계정, Workers/Pages/D1 권한, D1 UUID, 필요 시 API token/account ID
@@ -25,7 +29,7 @@ secret을 가진 사용자가 수행해야 하며, 완료 전에는 운영 배�
 - 실패 확인: `wrangler whoami`, token scope, account 선택, D1 name/UUID, environment
   binding을 확인한다.
 
-## 3. Backfill 관리자 secret
+## 3. 선택 사항: Backfill 관리자 secret
 
 - 수행 위치: 로컬 비밀관리 도구와 Cloudflare Worker secret
 - 필요한 값: 16자 이상 예측 불가능한 `BACKFILL_TOKEN`
@@ -33,24 +37,26 @@ secret을 가진 사용자가 수행해야 하며, 완료 전에는 운영 배�
 - 성공 확인: 올바른 Bearer token의 POST는 202, 없거나 틀린 token은 401
 - 실패 확인: production environment에 저장했는지와 Authorization header를 확인한다.
 
-## 4. Pages와 실제 URL
+## 4. GitHub Pages와 실제 URL
 
-- 수행 위치: Cloudflare Workers & Pages
-- 필요한 값: GitHub 저장소 접근 권한, Pages project name, Worker URL, 선택적 custom domain
-- 설정: `docs/DEPLOY.md`의 Git 연동 build/output/env 값을 그대로 사용
+- 수행 위치: GitHub 저장소 Actions와 Settings → Pages
+- 필요한 값: Actions 권한, `github-pages` environment, 선택적 custom domain
+- 설정: `.github/workflows/pages.yml`의 Pages-static build/output/env 값을 사용
 - 성공 확인: 실제 HTTPS URL에서 `/`, `/method`, `/products`, `/faq`, `/privacy`, `/terms`,
-  `/disclaimer`, `/robots.txt`, `/sitemap.xml`이 정상이고 fixture 문구가 없으며, 응답에
-  `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options`, `Permissions-Policy`가 존재
-- 실패 확인: Node 24, pnpm lockfile, build root/output, 세 `PUBLIC_*` 값을 확인한다.
+  `/disclaimer`, `/robots.txt`, `/sitemap.xml`, 대표 상품 JSON이 정상이고 fixture 문구가
+  없으며 실제 기준일이 표시됨
+- 실패 확인: Secret 이름, Node 24, pnpm lockfile, 생성 step, build root/output, Pages base
+  path를 확인한다. `_headers` 파일이 GitHub Pages 응답에 적용된다고 가정하지 않는다.
 
 ## 5. 운영 smoke와 최신 데이터 확인
 
-- 수행 위치: 실제 Pages URL과 Worker URL
+- 수행 위치: 실제 GitHub Pages URL과 Actions run; Worker를 선택한 경우 Worker URL
 - 필요한 값: 위 배포 결과
 - 성공 확인: 390px/1440px 계산 흐름, API health, 실제 최신 기준일, console error 0,
   금융 입력 네트워크 유출 0
-- 실패 확인: Pages build log, Worker deployment log, D1 `sync_runs`, CORS allowlist, stale
-  metadata를 순서대로 확인한다. stale/degraded를 임의로 green 처리하지 않는다.
+- 실패 확인: Pages 생성/build/deploy log와 정적 JSON의 stale metadata를 먼저 확인한다.
+  Worker를 선택한 경우에만 D1 `sync_runs`와 CORS allowlist도 확인한다. stale/degraded를
+  임의로 green 처리하지 않는다.
 
 ## 6. AdSense와 consent (선택)
 
@@ -61,4 +67,5 @@ secret을 가진 사용자가 수행해야 하며, 완료 전에는 운영 배�
 - 실패 확인: 하나라도 불완전하면 `PUBLIC_CONSENT_READY=false`로 되돌려 외부 광고 요청을
   완전히 비활성화한다.
 
-현재 실제 배포 URL, D1 UUID, service key, Cloudflare 인증, AdSense 승인은 제공되지 않았다.
+GitHub service key Secret은 등록됐다. 실제 18개 응답과 Pages 배포는 workflow 실행으로
+확인해야 한다. D1/Cloudflare는 선택되지 않았고 AdSense 승인은 제공되지 않았다.

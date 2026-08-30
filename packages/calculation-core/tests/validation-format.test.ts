@@ -4,6 +4,7 @@ import {
   AnalysisInputError,
   formatAveragePriceWon,
   formatDetailedPercent,
+  formatIndexPoints,
   formatPercent,
   formatPercentagePoints,
   formatQuantity,
@@ -177,6 +178,7 @@ describe('display formatting', () => {
     expect(formatSignedWon(1_000)).toBe('+1,000원');
     expect(formatSignedWon(-1_000)).toBe('-1,000원');
     expect(formatQuantity(1_234)).toBe('1,234주');
+    expect(formatIndexPoints(3_215.678)).toBe('3,215.68포인트');
   });
 
   it('formats major, detailed and percentage-point rates', () => {
@@ -199,6 +201,7 @@ describe('display formatting', () => {
       expect(formatWon(value)).toBe('—');
       expect(formatSignedWon(value)).toBe('—');
       expect(formatQuantity(value)).toBe('—');
+      expect(formatIndexPoints(value)).toBe('—');
       expect(formatPercent(value)).toBe('—');
       expect(formatDetailedPercent(value)).toBe('—');
       expect(formatPercentagePoints(value)).toBe('—');
