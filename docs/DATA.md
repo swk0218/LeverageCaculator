@@ -24,7 +24,9 @@ eligible merely because it ran.
 
 ## Product master and analysis capability
 
-The production master contains only entries supported by an official issuer notice, KRX KIND product page, or issuer product page. Codes are stored as the six-character short code returned in `srtnCd`. The current production entries are deliberately `actual-only`: their existence and product metadata are verified, but a service-key-backed capture has not yet proved an exact, non-double-levered underlying series mapping. Until that proof exists, the synthetic D1 asset rows are labeled `product-master-unverified-series`; this is catalog lineage, not a claim that an underlying price series was verified. Fixture products expose `full` capability so +2X, -2X, and both positive and negative compound-effect paths remain testable.
+The production master contains only entries supported by an official issuer notice, KRX KIND product page, or issuer product page. Codes are stored as the six-character short code returned in `srtnCd`. All 18 entries use exact stock-code matching for the user-facing analysis series: Samsung Electronics `005930` or SK hynix `000660`. This removes the former double-leverage risk from feeding an already leveraged or inverse reference index into the calculation core.
+
+The ten spot ETFs use the stock series as their direct analysis basis. Six futures ETFs and two TR-index ETNs also expose the requested stock-price target and positive/negative compounding view, but carry `analysisBasis=reference-stock-proxy`. `baseIndexName` and `baseIndexType` identify the unlevered original index whose daily return defines the product's target multiple; they do not claim to be the product's formal leveraged or inverse reference-index name. UI and payload warnings state that futures basis/rollover or dividend-reinvestment differences are not represented by the raw share series. A future exact-index comparison would be an additional series, not a silent replacement of this stock-price view.
 
 ## Runtime modes and credentials
 

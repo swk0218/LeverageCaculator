@@ -152,4 +152,21 @@ test.describe('keyboard and accessibility', () => {
     const productListViolations = await axeViolations(page);
     expect(productListViolations, formatViolations(productListViolations)).toEqual([]);
   });
+
+  for (const viewport of [
+    { width: 390, height: 844 },
+    { width: 1440, height: 1000 },
+  ]) {
+    test(`has no axe violations in the stock-proxy result at ${viewport.width}px @a11y`, async ({
+      page,
+    }) => {
+      await page.setViewportSize(viewport);
+      await selectProduct(page, fixtureProducts.inverse);
+      await fillPurchase(page, 1, purchases.first);
+      await page.getByRole('button', { name: '계산하기' }).click();
+      await expect(resultRegion(page)).toContainText('본주 환산 참고');
+      const violations = await axeViolations(page);
+      expect(violations, formatViolations(violations)).toEqual([]);
+    });
+  }
 });

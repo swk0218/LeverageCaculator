@@ -532,7 +532,11 @@ export function CalculatorApp() {
               {manualPrice !== null
                 ? '직접 입력 현재가'
                 : `${data.latest.product.date.replaceAll('-', '.')} 공식 종가`}{' '}
-              · 공식 분석 기준 {result.analysisDate?.replaceAll('-', '.') ?? '분석 불가'}
+              ·{' '}
+              {data.product.analysisBasis === 'reference-stock-proxy'
+                ? '공식 본주 종가 기준'
+                : '공식 분석 기준'}{' '}
+              {result.analysisDate?.replaceAll('-', '.') ?? '분석 불가'}
             </p>
           </div>
           {data.product.analysisCapability === 'actual-only' && (
@@ -551,6 +555,7 @@ export function CalculatorApp() {
               scenario={selectedScenario}
               selectedPeriod={selectedPeriod}
               currentUnderlyingPrice={analysisUnderlying}
+              analysisDate={result.analysisDate}
               onPeriodChange={setSelectedPeriod}
             />
           )}

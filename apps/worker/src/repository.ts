@@ -24,6 +24,9 @@ interface ProductRow {
   underlying_symbol: string;
   underlying_name: string;
   underlying_type: 'stock' | 'spot-index' | 'futures-index';
+  analysis_basis: 'underlying-stock' | 'reference-stock-proxy';
+  base_index_name: string | null;
+  base_index_type: 'price-return-index' | 'futures-index' | 'total-return-index' | null;
   listed_date: string;
   analysis_capability: 'full' | 'actual-only';
   active: number;
@@ -58,6 +61,9 @@ function mapProduct(row: ProductRow): Product {
     underlyingId: row.underlying_symbol,
     underlyingName: row.underlying_name,
     underlyingType: row.underlying_type,
+    analysisBasis: row.analysis_basis,
+    ...(row.base_index_name === null ? {} : { baseIndexName: row.base_index_name }),
+    ...(row.base_index_type === null ? {} : { baseIndexType: row.base_index_type }),
     listedDate: row.listed_date,
     analysisCapability: row.analysis_capability,
     active: row.active === 1,
@@ -79,6 +85,9 @@ const PRODUCT_SELECT = `
     u.symbol AS underlying_symbol,
     u.name AS underlying_name,
     p.underlying_type,
+    p.analysis_basis,
+    p.base_index_name,
+    p.base_index_type,
     p.listed_date,
     p.analysis_capability,
     p.active
@@ -256,6 +265,8 @@ export class D1MarketRepository implements IngestionRepository {
   ): Promise<number> {
     const statements: D1PreparedStatement[] = [];
     let recordCount = 0;
+    const queuedAssetIds = new Set<string>();
+    const queuedPriceKeys = new Set<string>();
 
     for (const { data, metadata } of entries) {
       const productAsset = data.productSeries.asset;
@@ -266,16 +277,20 @@ export class D1MarketRepository implements IngestionRepository {
         assetType: data.product.underlyingType,
         source: metadata.scope === 'fixture' ? 'fixture' : 'product-master-unverified-series',
       };
-      statements.push(this.upsertAsset(productAsset));
-      statements.push(this.upsertAsset(underlyingAsset));
+      for (const asset of [productAsset, underlyingAsset]) {
+        if (queuedAssetIds.has(asset.id)) continue;
+        queuedAssetIds.add(asset.id);
+        statements.push(this.upsertAsset(asset));
+      }
       statements.push(
         this.db
           .prepare(
             `INSERT INTO products (
               code, asset_id, name, product_type, leverage, underlying_id, underlying_type,
-              listed_date, analysis_capability, active, catalog_scope, verification_status,
-              evidence_url, verified_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+              analysis_basis, base_index_name, base_index_type, listed_date,
+              analysis_capability, active, catalog_scope, verification_status, evidence_url,
+              verified_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             ON CONFLICT(code) DO UPDATE SET
               asset_id = excluded.asset_id,
               name = excluded.name,
@@ -283,6 +298,9 @@ export class D1MarketRepository implements IngestionRepository {
               leverage = excluded.leverage,
               underlying_id = excluded.underlying_id,
               underlying_type = excluded.underlying_type,
+              analysis_basis = excluded.analysis_basis,
+              base_index_name = excluded.base_index_name,
+              base_index_type = excluded.base_index_type,
               listed_date = excluded.listed_date,
               analysis_capability = excluded.analysis_capability,
               active = excluded.active,
@@ -300,6 +318,9 @@ export class D1MarketRepository implements IngestionRepository {
             data.product.leverage,
             underlyingAsset.id,
             data.product.underlyingType,
+            data.product.analysisBasis ?? 'underlying-stock',
+            data.product.baseIndexName ?? null,
+            data.product.baseIndexType ?? null,
             data.product.listedDate,
             data.product.analysisCapability,
             data.product.active ? 1 : 0,
@@ -316,6 +337,9 @@ export class D1MarketRepository implements IngestionRepository {
           : [data.productSeries, data.underlyingSeries];
       for (const series of seriesList) {
         for (const point of series.prices) {
+          const priceKey = `${series.asset.id}:${point.date}`;
+          if (queuedPriceKeys.has(priceKey)) continue;
+          queuedPriceKeys.add(priceKey);
           statements.push(
             this.db
               .prepare(

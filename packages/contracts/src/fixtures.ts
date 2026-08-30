@@ -41,6 +41,7 @@ const inverse2Product = product({
   underlyingId: 'FIXBASEDN',
   underlyingName: '[체험용] 반도체 대표주',
   underlyingType: 'stock',
+  analysisBasis: 'reference-stock-proxy',
   listedDate: '2026-08-03',
   analysisCapability: 'full',
   active: true,

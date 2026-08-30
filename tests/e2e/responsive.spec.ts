@@ -3,8 +3,12 @@ import { expect, test } from '@playwright/test';
 import {
   calculate,
   expectNoHorizontalOverflow,
+  fillPurchase,
   fillThreePurchases,
+  fixtureProducts,
   gotoCalculator,
+  purchases,
+  selectProduct,
 } from './test-helpers';
 
 const requiredViewports = [
@@ -21,6 +25,12 @@ for (const viewport of requiredViewports) {
     await page.setViewportSize(viewport);
     await gotoCalculator(page);
     await expectNoHorizontalOverflow(page);
+
+    await selectProduct(page, fixtureProducts.inverse);
+    await fillPurchase(page, 1, purchases.first);
+    await calculate(page);
+    await expectNoHorizontalOverflow(page);
+    await expect(page.getByRole('region', { name: '계산 결과' })).toContainText('본주 환산 참고');
   });
 }
 

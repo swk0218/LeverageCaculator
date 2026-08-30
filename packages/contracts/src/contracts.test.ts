@@ -10,6 +10,7 @@ import {
   LiveFscMarketDataProvider,
   PRODUCT_MASTER,
   PriceSeriesSchema,
+  ProductSchema,
   ProductDataBundleSchema,
   SANITIZED_FSC_AUTH_ERROR,
   SANITIZED_FSC_EMPTY_PAGE,
@@ -41,6 +42,13 @@ describe('runtime contracts', () => {
       { date: '2026-08-25', close: 101 },
     ]);
     expect(result.success).toBe(false);
+  });
+
+  it('requires base-index name and type together', () => {
+    const product = toProduct(PRODUCT_MASTER[0]!);
+    const missingType = { ...product };
+    delete missingType.baseIndexType;
+    expect(ProductSchema.safeParse(missingType).success).toBe(false);
   });
 
   it('validates every browser-facing fixture bundle', () => {
@@ -158,6 +166,19 @@ describe('runtime contracts', () => {
     expect(result.success).toBe(false);
   });
 
+  it('rejects a full-analysis response without an underlying series', () => {
+    const data = getFixtureProductData('F2UP01')!;
+    const result = AnalysisDataResponseSchema.safeParse({
+      data: {
+        ...data,
+        underlyingSeries: [],
+        latest: { product: data.latest.product },
+      },
+      meta: { mode: 'fixture', generatedAt: '2026-08-26T05:30:00.000Z' },
+    });
+    expect(result.success).toBe(false);
+  });
+
   it('accepts and validates the additive health coverage and sync fields', () => {
     const health = {
       status: 'degraded',
@@ -226,9 +247,32 @@ describe('verified product master', () => {
       expect(entry.code.startsWith('F')).toBe(false);
       expect(entry.verification.status).toBe('verified');
       expect(entry.verification.evidenceUrl).toMatch(/^https:\/\//);
-      expect(entry.analysisCapability).toBe('actual-only');
+      expect(entry.verification.liveUnderlyingSeriesVerified).toBe(false);
+      expect(entry.analysisCapability).toBe('full');
+      expect(entry.underlyingType).toBe('stock');
+      expect(['005930', '000660']).toContain(entry.underlyingId);
+      expect(entry.analysisBasis).toMatch(/^(underlying-stock|reference-stock-proxy)$/);
+      expect(entry.baseIndexName).toMatch(/^KRX /);
+      expect(entry.baseIndexType).toMatch(
+        /^(price-return-index|futures-index|total-return-index)$/,
+      );
       expect(toProduct(entry)).not.toHaveProperty('verification');
+      expect(toProduct(entry).analysisBasis).toBe(entry.analysisBasis);
+      expect(toProduct(entry).baseIndexName).toBe(entry.baseIndexName);
+      expect(toProduct(entry).baseIndexType).toBe(entry.baseIndexType);
     }
+    expect(
+      PRODUCT_MASTER.filter(({ analysisBasis }) => analysisBasis === 'underlying-stock'),
+    ).toHaveLength(10);
+    expect(
+      PRODUCT_MASTER.filter(({ analysisBasis }) => analysisBasis === 'reference-stock-proxy'),
+    ).toHaveLength(8);
+    expect(
+      PRODUCT_MASTER.filter(({ baseIndexType }) => baseIndexType === 'futures-index'),
+    ).toHaveLength(6);
+    expect(
+      PRODUCT_MASTER.filter(({ baseIndexType }) => baseIndexType === 'total-return-index'),
+    ).toHaveLength(2);
   });
 });
 
@@ -267,11 +311,24 @@ describe('providers', () => {
       const url = new URL(
         typeof input === 'string' ? input : input instanceof URL ? input.href : input.url,
       );
-      expect(url.pathname).toContain(`/${FSC_API_SPECS.securitiesProduct.operations.ETF}`);
-      expect(url.searchParams.get('likeSrtnCd')).toBe('0195R0');
       expect(url.searchParams.get('beginBasDt')).toBe('20260824');
       expect(url.searchParams.get('endBasDt')).toBe('20260826');
       expect(url.searchParams.has('priceWon')).toBe(false);
+      const isProduct = url.pathname.endsWith(`/${FSC_API_SPECS.securitiesProduct.operations.ETF}`);
+      expect(url.searchParams.get('likeSrtnCd')).toBe(isProduct ? '0195R0' : '005930');
+      const item = isProduct
+        ? {
+            basDt: '20260825',
+            srtnCd: '0195R0',
+            itmsNm: 'TIGER 삼성전자단일종목레버리지',
+            clpr: '12345',
+          }
+        : {
+            basDt: '20260825',
+            srtnCd: '005930',
+            itmsNm: '삼성전자',
+            clpr: '74200',
+          };
       return Promise.resolve(
         new Response(
           JSON.stringify({
@@ -281,14 +338,7 @@ describe('providers', () => {
                 numOfRows: 1000,
                 pageNo: 1,
                 totalCount: 1,
-                items: {
-                  item: {
-                    basDt: '20260825',
-                    srtnCd: '0195R0',
-                    itmsNm: 'TIGER 삼성전자단일종목레버리지',
-                    clpr: '12345',
-                  },
-                },
+                items: { item },
               },
             },
           }),
@@ -306,7 +356,151 @@ describe('providers', () => {
       to: '2026-08-25',
     });
     expect(result.productSeries.prices).toEqual([{ date: '2026-08-25', close: 12_345 }]);
-    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(result.underlyingSeries?.prices).toEqual([{ date: '2026-08-25', close: 74_200 }]);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('deduplicates the same official stock series across production products', async () => {
+    const fetchMock = vi.fn((input: string | URL | Request) => {
+      const url = new URL(
+        typeof input === 'string' ? input : input instanceof URL ? input.href : input.url,
+      );
+      const requestedCode = url.searchParams.get('likeSrtnCd');
+      const isUnderlying = requestedCode === '005930';
+      const item = isUnderlying
+        ? { basDt: '20260825', srtnCd: '005930', itmsNm: '삼성전자', clpr: '74200' }
+        : {
+            basDt: '20260825',
+            srtnCd: requestedCode,
+            itmsNm: '삼성전자 레버리지 상품',
+            clpr: '12345',
+          };
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            response: {
+              header: { resultCode: '00', resultMsg: 'NORMAL SERVICE.' },
+              body: {
+                numOfRows: 1000,
+                pageNo: 1,
+                totalCount: 1,
+                items: { item },
+              },
+            },
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        ),
+      );
+    });
+    const provider = new LiveFscMarketDataProvider({
+      serviceKey: 'not-a-real-key',
+      fetch: fetchMock,
+    });
+    const range = { from: '2026-08-24' as const, to: '2026-08-25' as const };
+    const first = toProduct(PRODUCT_MASTER.find(({ code }) => code === '0193W0')!);
+    const second = toProduct(PRODUCT_MASTER.find(({ code }) => code === '0195R0')!);
+
+    const [firstResult, secondResult] = await Promise.all([
+      provider.fetchProductData(first, range),
+      provider.fetchProductData(second, range),
+    ]);
+
+    expect(firstResult.underlyingSeries?.asset.symbol).toBe('005930');
+    expect(secondResult.underlyingSeries?.asset.symbol).toBe('005930');
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(
+      fetchMock.mock.calls.filter(([input]) => {
+        const url = new URL(
+          typeof input === 'string' ? input : input instanceof URL ? input.href : input.url,
+        );
+        return url.searchParams.get('likeSrtnCd') === '005930';
+      }),
+    ).toHaveLength(1);
+  });
+
+  it('fails closed when a full-analysis stock series is empty', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            response: {
+              header: { resultCode: '00', resultMsg: 'NORMAL SERVICE.' },
+              body: {
+                numOfRows: 1,
+                pageNo: 1,
+                totalCount: 1,
+                items: {
+                  item: {
+                    basDt: '20260825',
+                    srtnCd: '0195R0',
+                    itmsNm: 'TIGER 삼성전자단일종목레버리지',
+                    clpr: '12345',
+                  },
+                },
+              },
+            },
+          }),
+          { status: 200 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(SANITIZED_FSC_EMPTY_PAGE), { status: 200 }),
+      );
+    const provider = new LiveFscMarketDataProvider({
+      serviceKey: 'not-a-real-key',
+      fetch: fetchMock,
+    });
+    const product = toProduct(PRODUCT_MASTER.find(({ code }) => code === '0195R0')!);
+
+    await expect(
+      provider.fetchProductData(product, { from: '2026-08-24', to: '2026-08-25' }),
+    ).rejects.toMatchObject({ code: 'UNDERLYING_SERIES_EMPTY', retryable: false });
+  });
+
+  it('fails closed when an official stock filter returns another identity', async () => {
+    const fetchMock = vi.fn((input: string | URL | Request) => {
+      const url = new URL(
+        typeof input === 'string' ? input : input instanceof URL ? input.href : input.url,
+      );
+      const isProduct = url.pathname.endsWith('/getETFPriceInfo');
+      const item = isProduct
+        ? {
+            basDt: '20260825',
+            srtnCd: '0195R0',
+            itmsNm: 'TIGER 삼성전자단일종목레버리지',
+            clpr: '12345',
+          }
+        : { basDt: '20260825', srtnCd: '005935', itmsNm: '삼성전자우', clpr: '62100' };
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            response: {
+              header: { resultCode: '00', resultMsg: 'NORMAL SERVICE.' },
+              body: {
+                numOfRows: 1,
+                pageNo: 1,
+                totalCount: 1,
+                items: { item },
+              },
+            },
+          }),
+          { status: 200 },
+        ),
+      );
+    });
+    const provider = new LiveFscMarketDataProvider({
+      serviceKey: 'not-a-real-key',
+      fetch: fetchMock,
+    });
+    const product = toProduct(PRODUCT_MASTER.find(({ code }) => code === '0195R0')!);
+
+    await expect(
+      provider.fetchProductData(product, { from: '2026-08-24', to: '2026-08-25' }),
+    ).rejects.toMatchObject({
+      code: 'UNDERLYING_SERIES_IDENTITY_MISMATCH',
+      retryable: false,
+    });
   });
 
   it.each([

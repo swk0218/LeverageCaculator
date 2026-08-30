@@ -347,6 +347,95 @@ describe('scheduled ingestion', () => {
     expect(repository.finished.at(-1)).toMatchObject({ status: 'empty', recordCount: 0 });
   });
 
+  it.each<{
+    label: string;
+    errorCode: string;
+    corrupt: (data: ProviderProductData) => ProviderProductData;
+  }>([
+    {
+      label: 'missing',
+      errorCode: 'FULL_UNDERLYING_SERIES_MISSING',
+      corrupt(data) {
+        const { underlyingSeries: ignored, ...withoutUnderlying } = data;
+        void ignored;
+        return withoutUnderlying;
+      },
+    },
+    {
+      label: 'empty',
+      errorCode: 'FULL_UNDERLYING_SERIES_EMPTY',
+      corrupt(data) {
+        return {
+          ...data,
+          underlyingSeries: {
+            ...data.underlyingSeries!,
+            prices: [],
+            upstreamTotalCount: 0,
+          },
+        };
+      },
+    },
+    {
+      label: 'wrong asset',
+      errorCode: 'FULL_UNDERLYING_ASSET_MISMATCH',
+      corrupt(data) {
+        return {
+          ...data,
+          underlyingSeries: {
+            ...data.underlyingSeries!,
+            asset: { ...data.underlyingSeries!.asset, symbol: 'WRONG1' },
+          },
+        };
+      },
+    },
+    {
+      label: 'non-overlapping dates',
+      errorCode: 'FULL_UNDERLYING_DATE_MISMATCH',
+      corrupt(data) {
+        return {
+          ...data,
+          underlyingSeries: {
+            ...data.underlyingSeries!,
+            prices: [{ date: '2026-08-16', close: 100 }],
+            upstreamTotalCount: 1,
+          },
+        };
+      },
+    },
+  ])('rejects a $label underlying series for a full product', async ({ errorCode, corrupt }) => {
+    const repository = new FixtureRepository();
+    repository.priceKeys.add('existing:2026-08-25');
+    const fixtureProvider = new FixtureMarketDataProvider();
+    const target = fixtureCatalog[0]!.product;
+    const provider: MarketDataProvider = {
+      mode: 'live',
+      async fetchProductData(product, range) {
+        return corrupt(await fixtureProvider.fetchProductData(product, range));
+      },
+    };
+
+    await expect(
+      runIngestion(
+        repository,
+        provider,
+        [
+          {
+            product: target,
+            metadata: { scope: 'fixture', verificationStatus: 'fixture' },
+          },
+        ],
+        { from: '2026-08-17', to: '2026-08-25' },
+        () => new Date('2026-08-26T05:30:00.000Z'),
+      ),
+    ).rejects.toThrow(errorCode);
+    expect(repository.priceKeys).toEqual(new Set(['existing:2026-08-25']));
+    expect(repository.finished.at(-1)).toEqual({
+      status: 'failed',
+      recordCount: 0,
+      errorSummary: errorCode,
+    });
+  });
+
   it('preserves stored rows and sanitizes the sync record when a provider fails', async () => {
     const repository = new FixtureRepository();
     repository.priceKeys.add('existing:2026-08-25');
@@ -420,10 +509,16 @@ describe('scheduled ingestion', () => {
         if (product.code !== emptyCode) return data;
         return {
           ...data,
-          productSeries: { ...data.productSeries, prices: [] },
+          productSeries: { ...data.productSeries, prices: [], upstreamTotalCount: 0 },
           ...(data.underlyingSeries === undefined
             ? {}
-            : { underlyingSeries: { ...data.underlyingSeries, prices: [] } }),
+            : {
+                underlyingSeries: {
+                  ...data.underlyingSeries,
+                  prices: [],
+                  upstreamTotalCount: 0,
+                },
+              }),
         };
       },
     };

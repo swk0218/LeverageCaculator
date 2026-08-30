@@ -44,11 +44,22 @@ afterEach(async () => {
 
 function providerData(
   product: Product,
-  prices: ProviderProductData['productSeries']['prices'] = [
+  options: {
+    productPrices?: ProviderProductData['productSeries']['prices'];
+    underlyingPrices?: NonNullable<ProviderProductData['underlyingSeries']>['prices'];
+    omitUnderlying?: boolean;
+    underlyingAsset?: Partial<NonNullable<ProviderProductData['underlyingSeries']>['asset']>;
+    underlyingUpstreamTotalCount?: number;
+  } = {},
+): ProviderProductData {
+  const productPrices = options.productPrices ?? [
     { date: product.listedDate, close: 10_000, open: 9_900, volume: 123 },
     { date: '2026-08-28', close: 10_250, high: 10_300, low: 9_950 },
-  ],
-): ProviderProductData {
+  ];
+  const underlyingPrices = options.underlyingPrices ?? [
+    { date: product.listedDate, close: 70_000, open: 69_500, volume: 456 },
+    { date: '2026-08-28', close: 71_500, high: 72_000, low: 69_800 },
+  ];
   return ProviderProductDataSchema.parse({
     product,
     productSeries: {
@@ -59,21 +70,37 @@ function providerData(
         assetType: product.productType,
         source: 'fsc-securities-product',
       },
-      prices,
-      upstreamTotalCount: prices.length,
+      prices: productPrices,
+      upstreamTotalCount: productPrices.length,
     },
+    ...(options.omitUnderlying
+      ? {}
+      : {
+          underlyingSeries: {
+            asset: {
+              id: `underlying:${product.underlyingId}`,
+              symbol: product.underlyingId,
+              name: product.underlyingName,
+              assetType: product.underlyingType,
+              source: product.underlyingType === 'stock' ? 'fsc-stock' : 'fsc-market-index',
+              ...options.underlyingAsset,
+            },
+            prices: underlyingPrices,
+            upstreamTotalCount: options.underlyingUpstreamTotalCount ?? underlyingPrices.length,
+          },
+        }),
   });
 }
 
 function mockLiveProvider(
   calls: Array<{ product: Product; range: DataRange }>,
-  emptyCode?: string,
+  responseFor: (product: Product) => ProviderProductData = (product) => providerData(product),
 ): MarketDataProvider {
   return {
     mode: 'live',
     fetchProductData(product, range) {
       calls.push({ product, range });
-      return Promise.resolve(providerData(product, product.code === emptyCode ? [] : undefined));
+      return Promise.resolve(responseFor(product));
     },
   };
 }
@@ -122,10 +149,73 @@ describe('GitHub Pages market-data export', () => {
     const other = toProduct(PRODUCT_MASTER[1]!);
 
     expect(() =>
-      buildStaticAnalysisResponse(expected, providerData(expected, []), generatedAt),
+      buildStaticAnalysisResponse(
+        expected,
+        providerData(expected, { productPrices: [] }),
+        generatedAt,
+      ),
     ).toThrow('EMPTY_PRODUCT_SERIES');
     expect(() => buildStaticAnalysisResponse(expected, providerData(other), generatedAt)).toThrow(
       'SELECTED_PRODUCT_CODE_MISMATCH',
+    );
+  });
+
+  it('fails closed for every incomplete or inconsistent full underlying series', () => {
+    const generatedAt = new Date('2026-08-30T06:40:00.000Z');
+    const product = toProduct(PRODUCT_MASTER[0]!);
+    expect(product.analysisCapability).toBe('full');
+
+    expect(() =>
+      buildStaticAnalysisResponse(
+        product,
+        providerData(product, { omitUnderlying: true }),
+        generatedAt,
+      ),
+    ).toThrow('MISSING_UNDERLYING_SERIES');
+    expect(() =>
+      buildStaticAnalysisResponse(
+        product,
+        providerData(product, { underlyingPrices: [] }),
+        generatedAt,
+      ),
+    ).toThrow('EMPTY_UNDERLYING_SERIES');
+    expect(() =>
+      buildStaticAnalysisResponse(
+        product,
+        providerData(product, { underlyingAsset: { symbol: 'WRONG-UNDERLYING' } }),
+        generatedAt,
+      ),
+    ).toThrow('UNDERLYING_ASSET_IDENTITY_MISMATCH');
+    expect(() =>
+      buildStaticAnalysisResponse(
+        product,
+        providerData(product, { underlyingUpstreamTotalCount: 3 }),
+        generatedAt,
+      ),
+    ).toThrow('FILTERED_UNDERLYING_COUNT_MISMATCH');
+    expect(() =>
+      buildStaticAnalysisResponse(
+        product,
+        providerData(product, {
+          underlyingPrices: [{ date: '2026-08-27', close: 70_000 }],
+        }),
+        generatedAt,
+      ),
+    ).toThrow('NO_COMMON_TRADE_DATE');
+  });
+
+  it('labels a reference-stock proxy without weakening full-series validation', () => {
+    const product = toProduct(
+      PRODUCT_MASTER.find(({ analysisBasis }) => analysisBasis === 'reference-stock-proxy')!,
+    );
+    const response = buildStaticAnalysisResponse(
+      product,
+      providerData(product),
+      new Date('2026-08-30T06:40:00.000Z'),
+    );
+
+    expect(response.data.warnings).toContain(
+      `일간 배수 산정 원지수인 ${product.baseIndexName} 대신 ${product.underlyingName} 본주 종가를 환산 분석에 사용하므로 실제 상품 결과와 차이가 날 수 있습니다.`,
     );
   });
 
@@ -180,7 +270,12 @@ describe('GitHub Pages market-data export', () => {
 
     for (const code of expectedCodes) {
       const serialized = await readFile(join(outputDir, `${code}.json`), 'utf8');
-      expect(AnalysisDataResponseSchema.parse(JSON.parse(serialized)).data.product.code).toBe(code);
+      const payload = AnalysisDataResponseSchema.parse(JSON.parse(serialized));
+      expect(payload.data.product.code).toBe(code);
+      expect(payload.data.product.analysisCapability).toBe('full');
+      expect(payload.data.underlyingSeries.length).toBeGreaterThan(0);
+      expect(payload.data.latest.underlying).toEqual(payload.data.underlyingSeries.at(-1));
+      expect(payload.data.latest.analysisDate).toBe('2026-08-28');
       expect(serialized).not.toContain(VALID_SERVICE_KEY);
       expect(serialized).not.toContain('A1b2C3d4E5f6G7h8I9j0K+LmN=');
       expect(serialized).not.toContain('apis.data.go.kr');
@@ -204,7 +299,7 @@ describe('GitHub Pages market-data export', () => {
     expect(await readdir(outputDir)).toHaveLength(18);
   });
 
-  it('keeps the prior complete directory when any active product is partial', async () => {
+  it('keeps the prior complete directory when any active underlying series is partial', async () => {
     const root = await temporaryRoot();
     const outputDir = join(root, 'analysis');
     await mkdir(outputDir);
@@ -216,9 +311,15 @@ describe('GitHub Pages market-data export', () => {
         outputDir,
         env: { DATA_GO_KR_SERVICE_KEY: VALID_SERVICE_KEY },
         now: new Date('2026-08-30T06:40:00.000Z'),
-        providerFactory: () => mockLiveProvider(calls, PRODUCT_MASTER[2]!.code),
+        providerFactory: () =>
+          mockLiveProvider(calls, (product) =>
+            providerData(
+              product,
+              product.code === PRODUCT_MASTER[2]!.code ? { underlyingPrices: [] } : {},
+            ),
+          ),
       }),
-    ).rejects.toThrow('EMPTY_PRODUCT_SERIES');
+    ).rejects.toThrow('EMPTY_UNDERLYING_SERIES');
 
     expect(await readdir(outputDir)).toEqual(['previous.json']);
     expect(await readFile(join(outputDir, 'previous.json'), 'utf8')).toBe('{"complete":true}\n');

@@ -6,6 +6,7 @@ import {
   toProduct,
   type DataRange,
   type MarketDataProvider,
+  type ProviderProductData,
 } from '@yangbok/contracts';
 
 import { D1MarketRepository } from './repository';
@@ -83,6 +84,54 @@ function safeErrorSummary(error: unknown): string {
   return 'UNKNOWN_SYNC_ERROR';
 }
 
+export class IngestionDataError extends Error {
+  constructor(readonly code: string) {
+    super(code);
+    this.name = 'IngestionDataError';
+  }
+}
+
+function assertIngestionSeriesIntegrity(data: ProviderProductData): void {
+  const { product, productSeries, underlyingSeries } = data;
+
+  if (productSeries.upstreamTotalCount !== productSeries.prices.length) {
+    throw new IngestionDataError('PRODUCT_SERIES_COUNT_MISMATCH');
+  }
+
+  if (productSeries.prices.length === 0) {
+    if (underlyingSeries !== undefined && underlyingSeries.prices.length > 0) {
+      throw new IngestionDataError('ORPHAN_UNDERLYING_SERIES');
+    }
+    return;
+  }
+
+  if (product.analysisCapability !== 'full') return;
+  if (underlyingSeries === undefined) {
+    throw new IngestionDataError('FULL_UNDERLYING_SERIES_MISSING');
+  }
+  if (underlyingSeries.prices.length === 0) {
+    throw new IngestionDataError('FULL_UNDERLYING_SERIES_EMPTY');
+  }
+  if (underlyingSeries.upstreamTotalCount !== underlyingSeries.prices.length) {
+    throw new IngestionDataError('FULL_UNDERLYING_SERIES_COUNT_MISMATCH');
+  }
+
+  const expectedAssetId = `underlying:${product.underlyingId}`;
+  if (
+    underlyingSeries.asset.id !== expectedAssetId ||
+    underlyingSeries.asset.symbol !== product.underlyingId ||
+    underlyingSeries.asset.name !== product.underlyingName ||
+    underlyingSeries.asset.assetType !== product.underlyingType
+  ) {
+    throw new IngestionDataError('FULL_UNDERLYING_ASSET_MISMATCH');
+  }
+
+  const underlyingDates = new Set(underlyingSeries.prices.map(({ date }) => date));
+  if (!productSeries.prices.some(({ date }) => underlyingDates.has(date))) {
+    throw new IngestionDataError('FULL_UNDERLYING_DATE_MISMATCH');
+  }
+}
+
 export async function runIngestion(
   repository: IngestionRepository,
   provider: MarketDataProvider,
@@ -101,7 +150,12 @@ export async function runIngestion(
   try {
     const settled = await Promise.allSettled(
       targets.map(({ product }) =>
-        Promise.resolve().then(() => provider.fetchProductData(product, range)),
+        Promise.resolve()
+          .then(() => provider.fetchProductData(product, range))
+          .then((data) => {
+            assertIngestionSeriesIntegrity(data);
+            return data;
+          }),
       ),
     );
     const results: Array<{

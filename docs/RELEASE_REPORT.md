@@ -11,8 +11,8 @@
   opt-in 30-day local persistence, protected product changes, and confirmed reset.
 - P4: Complete — actual P/L, product and 1/5/20-day underlying break-even, compound/theory comparison,
   official/manual/stale/partial/error states, concise adaptive results, and focus recovery.
-- P5: Complete — FSC adapters, strict range/schema validation, sanitized fixtures, evidence-conservative
-  18-product master, and malformed/empty preservation semantics.
+- P5: Complete — FSC adapters, strict range/schema/identity validation, sanitized fixtures, verified
+  18-product-to-stock master, and malformed/empty preservation semantics.
 - P6: Complete — Worker API, D1, fixture/live ingestion, schedule, backfill, exact CORS, retry/timeout,
   fail-closed per-product health, partial-failure reporting, and Workerd+D1 test.
 - P7: Complete — original content, method/products/FAQ/policies, SEO, sitemap, robots, 404, preview
@@ -22,6 +22,10 @@
 - P9: Pages-static production release complete — official-data export, 15:40 KST scheduling, release
   gate, deployment/rollback instructions, live Actions/Pages witnessing, and hosted browser smoke.
   AdSense remains external and disabled.
+- P10: Full-analysis candidate complete — official Samsung Electronics/SK hynix stock series,
+  1/5/20-day won target prices, favorable/unfavorable compounding, ten direct stock-basis mappings,
+  eight disclosed stock-proxy mappings, and fail-closed export/ingestion gates. Live deployment of
+  this revision remains to be witnessed separately from the prior P9 release.
 
 ## Implemented
 
@@ -33,15 +37,17 @@ effect, and theory-versus-product performance.
 
 The completion audit simplified the experience to one primary task flow. It removed developer copy,
 inactive ad placeholders, game/pixel remnants, misleading empty zeroes, a single-row delete control,
-prominent destructive reset, and repeated unavailable output. Actual-only products now present one
-scope warning and only usable metrics. Mobile supported products are grouped by underlying asset.
+prominent destructive reset, and repeated unavailable output. All 18 production products now show
+stock target-price and compound analysis. Actual-only remains an honest fallback for incomplete data,
+and mobile supported products are grouped by underlying asset.
 
 ## Architecture
 
 - `apps/web`: Astro static content plus one React calculator island using Astryx 0.5.0 neutral theme.
 - `packages/calculation-core`: UI-independent domain types, validation, calculation, and formatting.
 - `packages/contracts`: Zod API/provider schemas, product master, fixtures, and FSC normalization.
-- `scripts/generate-pages-data.ts`: Secret-scoped, atomic, fail-closed 18-product static export.
+- `scripts/generate-pages-data.ts`: Secret-scoped, atomic, fail-closed export of product and analysis
+  stock series for all 18 products.
 - `apps/worker`: Cloudflare Worker routes, D1 repository, fixture/live ingestion, schedule, backfill,
   CORS, caching/freshness, security headers, and safe errors as an optional dynamic path.
 - `tests/e2e`: production-static flow, privacy, accessibility, responsive, and visual gates.
@@ -52,9 +58,9 @@ The browser sends public product/date identifiers only. Worker credentials and D
 ## Calculation verification
 
 - Golden/property/core tests: 30/30 PASS.
-- Contracts/provider tests: 29/29 PASS.
-- Repository unit/contract/web/Worker tests: 87/87 PASS.
-- Core coverage: 99.34% statements, 97.87% branches, 100% functions, 100% lines.
+- Contracts/provider tests: 37/37 PASS.
+- Repository Vitest suite: 10 files, 106/106 PASS.
+- Workerd+D1 runtime tests: 2/2 PASS.
 - Missing intermediate underlying trading dates exclude affected lots and produce a partial/unavailable
   warning instead of a false full analysis.
 
@@ -62,8 +68,8 @@ The browser sends public product/date identifiers only. Worker credentials and D
 
 - Mobile: PASS at 360×800, 390×844, and 430×932 with no horizontal page overflow.
 - Tablet/desktop: PASS at 768×1024, 1280×900, and 1440×1000.
-- E2E: 18/18 non-visual scenarios PASS against a fresh production-static build.
-- Accessibility: 3/3 PASS; axe runs without severity filtering and reports 0 violations.
+- E2E: 21/21 non-visual scenarios PASS against a fresh production-static build.
+- Accessibility: 5/5 PASS; axe runs without severity filtering and reports 0 violations.
 - Visual regression: 20/20 current fixture comparisons PASS; the live-only API-error case is the one
   intentional fixture-mode skip.
 - Console: current-run captured application warnings/errors 0.
@@ -76,14 +82,20 @@ The browser sends public product/date identifiers only. Worker credentials and D
 - Live adapter: implemented for the documented FSC operations with query construction, response
   normalization, encoding handling, bounded retry/timeout, schema/range validation, and preservation
   on malformed/empty response.
-- Product master: 18 active, evidence-backed ETF/ETNs, conservatively `actual-only` until exact live
-  underlying series are witnessed.
-- Worker/D1: migration, seed, sync, idempotent upsert, per-product health coverage, last-sync status,
-  products/analysis APIs, and partial-failure signaling are implemented and locally tested.
-- The approved key is registered as `DATA_GO_KR_SERVICE_KEY` in GitHub Actions Secrets; the value was
-  not read. Pages run `33314666328` exported all 18 products and 1,152 official price points. Every
-  payload preserved the provider's actual latest `basDt` (`2026-08-27` in that run), and public
-  artifacts contained neither the key nor an upstream URL marker.
+- Product master: 18 active ETF/ETNs with exact analysis mappings to official Samsung Electronics
+  (`005930`) or SK hynix (`000660`) stock closes. Ten spot ETFs use `underlying-stock`; six futures
+  ETFs and two ETNs use `reference-stock-proxy` while retaining the PR/futures/TR original-index name
+  and type used to define their daily target multiple.
+- The results provide 1/5/20-day won target prices and simple leverage, daily compound, actual
+  product, compound-effect, and actual-versus-theory comparisons. Proxy products identify these as
+  `본주 환산` and disclose futures basis/rollover or TR dividend-reinvestment differences.
+- Worker/D1: the analysis-basis migration, two shared stock assets, 18 mappings, deduplicated writes,
+  sync, idempotent upsert, per-product health coverage, last-sync status, products/analysis APIs, and
+  partial-failure signaling are implemented and locally tested.
+- The approved key is registered as `DATA_GO_KR_SERVICE_KEY` in GitHub Actions Secrets; its value was
+  not read. The prior Pages run `33314666328` exported all 18 product series and 1,152 official price
+  points with provider `basDt` `2026-08-27` and no key/upstream marker. A new run must witness the
+  added stock series and full-analysis payloads before they are claimed as publicly deployed.
 
 ## Privacy and security
 
@@ -107,23 +119,26 @@ The browser sends public product/date identifiers only. Worker credentials and D
 - `pnpm verify`: PASS.
 - `pnpm astryx doctor`: 6 passed, 0 warnings, 0 failures.
 - `pnpm audit --audit-level high`: PASS, no known vulnerabilities.
-- Pages-static `pnpm release:check`: environment, workflow, build, security, privacy, SEO, and ad gates
-  PASS in the Secret-backed Actions deployment; without generated JSON it still fails closed exactly
-  on the missing data directory.
+- Pages-static `pnpm release:check`: the prior Secret-backed Actions deployment passed. The P10
+  release-check contracts pass locally, while the candidate's Secret-backed invocation remains to be
+  witnessed; without generated JSON the command still fails closed on the missing data directory.
 
 ## Deployment
 
-- Witnessed application revision: `223f5dbbe1257ace6bf454a97e7c090d6b340df9`, with main CI run
+- Prior witnessed application revision: `223f5dbbe1257ace6bf454a97e7c090d6b340df9`, with main CI run
   `33314666323` and Pages run `33314666328` both successful.
-- Public URL: `https://swk0218.github.io/LeverageCaculator/` serves the current official-data build.
+- Public URL: `https://swk0218.github.io/LeverageCaculator/` serves that prior official-data build;
+  the P10 revision requires a new successful Pages run and public payload smoke.
 - Live structure: GitHub source → Actions official-data export → GitHub Pages static site.
 - Live Worker/API/D1 URL: none; this is an optional future expansion and not a Pages blocker.
 
 ## External actions remaining
 
-1. Witness the first naturally scheduled weekday `15:40 KST` run. The successful push-triggered run
-   proves the same export/deploy path, but not that the cron event has fired by itself.
-2. Enable AdSense only after approval and consent readiness; otherwise keep it disabled.
+1. Deploy P10 and verify all 18 public payloads contain non-empty, correctly identified stock series,
+   latest stock/product points, a common analysis date, and no key/upstream leakage.
+2. Witness the first naturally scheduled weekday `15:40 KST` run. The prior push-triggered run proves
+   the export/deploy path, but not that the cron event has fired by itself.
+3. Enable AdSense only after approval and consent readiness; otherwise keep it disabled.
 
 Exact locations, values, commands, and success/failure checks are in `docs/EXTERNAL_ACTIONS.md` and
 `docs/DEPLOY.md`.
@@ -132,7 +147,11 @@ Exact locations, values, commands, and success/failure checks are in `docs/EXTER
 
 - The live FSC payload and public artifact are witnessed. The provider's actual publication date may
   lag the collection time, so the UI exposes `basDt` instead of claiming same-day closing data.
-- Exact underlying series remain unverified, so production products intentionally stay actual-only.
+- Ten spot ETFs have direct official stock-series analysis. For six futures ETFs and two ETNs, the
+  stock series is intentionally a reference proxy rather than an exact reconstruction of the
+  futures/TR original-index path; basis, rollover, and dividend reinvestment can change the result.
+- Local full-analysis contracts and rendering are verified, but the Secret-backed export and hosted
+  public payloads for this revision remain a separate live deployment gate.
 - D1 failure is now surfaced as partial, but atomicity is not guaranteed across all bounded batches
   in one ingestion run.
 - Final origin-specific CSP/AdSense behavior and hosted `_headers` must be witnessed after deployment.
@@ -155,12 +174,16 @@ Exact locations, values, commands, and success/failure checks are in `docs/EXTER
 - `docs/QA.md`
 - `docs/EXTERNAL_ACTIONS.md`
 
-## Screenshot paths
+## Screenshot evidence
+
+The updated responsive/proxy baselines are stored under `tests/e2e/visual.spec.ts-snapshots/`. The
+absolute paths below are earlier completion-audit references; the actual-only image is retained only
+as fail-closed fallback coverage.
 
 - Desktop task: `C:/Users/swk02/.codex/visualizations/2026/08/25/01a03b23-4840-7f33-a871-72cdbf582414/yangbok-completion-audit-20260826/18-final-desktop-task.png`
 - Desktop result: `C:/Users/swk02/.codex/visualizations/2026/08/25/01a03b23-4840-7f33-a871-72cdbf582414/yangbok-completion-audit-20260826/19-final-desktop-result.png`
 - Mobile validation: `C:/Users/swk02/.codex/visualizations/2026/08/25/01a03b23-4840-7f33-a871-72cdbf582414/yangbok-completion-audit-20260826/21-final-mobile-validation.png`
 - Mobile full result: `C:/Users/swk02/.codex/visualizations/2026/08/25/01a03b23-4840-7f33-a871-72cdbf582414/yangbok-completion-audit-20260826/22-final-mobile-result.png`
-- Mobile actual-only: `C:/Users/swk02/.codex/visualizations/2026/08/25/01a03b23-4840-7f33-a871-72cdbf582414/yangbok-completion-audit-20260826/23-final-mobile-actual-only.png`
+- Mobile actual-only fallback: `C:/Users/swk02/.codex/visualizations/2026/08/25/01a03b23-4840-7f33-a871-72cdbf582414/yangbok-completion-audit-20260826/23-final-mobile-actual-only.png`
 - Mobile products: `C:/Users/swk02/.codex/visualizations/2026/08/25/01a03b23-4840-7f33-a871-72cdbf582414/yangbok-completion-audit-20260826/24-final-mobile-products.png`
 - Approved regression set: `tests/e2e/visual.spec.ts-snapshots/`
