@@ -22,10 +22,10 @@
 - P9: Pages-static production release complete — official-data export, 15:40 KST scheduling, release
   gate, deployment/rollback instructions, live Actions/Pages witnessing, and hosted browser smoke.
   AdSense remains external and disabled.
-- P10: Full-analysis candidate complete — official Samsung Electronics/SK hynix stock series,
+- P10: Full-analysis production release complete — official Samsung Electronics/SK hynix stock series,
   1/5/20-day won target prices, favorable/unfavorable compounding, ten direct stock-basis mappings,
-  eight disclosed stock-proxy mappings, and fail-closed export/ingestion gates. Live deployment of
-  this revision remains to be witnessed separately from the prior P9 release.
+  eight disclosed stock-proxy mappings, fail-closed export/ingestion gates, and witnessed live
+  deployment.
 
 ## Implemented
 
@@ -93,9 +93,10 @@ The browser sends public product/date identifiers only. Worker credentials and D
   sync, idempotent upsert, per-product health coverage, last-sync status, products/analysis APIs, and
   partial-failure signaling are implemented and locally tested.
 - The approved key is registered as `DATA_GO_KR_SERVICE_KEY` in GitHub Actions Secrets; its value was
-  not read. The prior Pages run `33314666328` exported all 18 product series and 1,152 official price
-  points with provider `basDt` `2026-08-27` and no key/upstream marker. A new run must witness the
-  added stock series and full-analysis payloads before they are claimed as publicly deployed.
+  not read. Pages run `33337219740` generated and release-checked all 18 full-analysis payloads.
+  Post-deploy fetch verified nine Samsung Electronics and nine SK hynix mappings, ten direct and
+  eight proxy analysis bases, non-empty product/stock series, shared `analysisDate` `2026-08-27`,
+  and no key/upstream marker.
 
 ## Privacy and security
 
@@ -119,26 +120,22 @@ The browser sends public product/date identifiers only. Worker credentials and D
 - `pnpm verify`: PASS.
 - `pnpm astryx doctor`: 6 passed, 0 warnings, 0 failures.
 - `pnpm audit --audit-level high`: PASS, no known vulnerabilities.
-- Pages-static `pnpm release:check`: the prior Secret-backed Actions deployment passed. The P10
-  release-check contracts pass locally, while the candidate's Secret-backed invocation remains to be
-  witnessed; without generated JSON the command still fails closed on the missing data directory.
+- Pages-static `pnpm release:check`: PASS in Secret-backed Actions run `33337219740`; without
+  generated JSON the command still fails closed on the missing data directory.
 
 ## Deployment
 
-- Prior witnessed application revision: `223f5dbbe1257ace6bf454a97e7c090d6b340df9`, with main CI run
-  `33314666323` and Pages run `33314666328` both successful.
-- Public URL: `https://swk0218.github.io/LeverageCaculator/` serves that prior official-data build;
-  the P10 revision requires a new successful Pages run and public payload smoke.
+- Witnessed application revision: `e3a7021f1cec4444c183b00ef5e3aa784ff4abda`, with PR CI run
+  `33337048053`, main CI run `33337219738`, and Pages run `33337219740` successful.
+- Public URL: `https://swk0218.github.io/LeverageCaculator/` serves the P10 full-analysis build.
 - Live structure: GitHub source → Actions official-data export → GitHub Pages static site.
 - Live Worker/API/D1 URL: none; this is an optional future expansion and not a Pages blocker.
 
 ## External actions remaining
 
-1. Deploy P10 and verify all 18 public payloads contain non-empty, correctly identified stock series,
-   latest stock/product points, a common analysis date, and no key/upstream leakage.
-2. Witness the first naturally scheduled weekday `15:40 KST` run. The prior push-triggered run proves
+1. Witness the first naturally scheduled weekday `15:40 KST` run. The push-triggered run proves
    the export/deploy path, but not that the cron event has fired by itself.
-3. Enable AdSense only after approval and consent readiness; otherwise keep it disabled.
+2. Enable AdSense only after approval and consent readiness; otherwise keep it disabled.
 
 Exact locations, values, commands, and success/failure checks are in `docs/EXTERNAL_ACTIONS.md` and
 `docs/DEPLOY.md`.
@@ -150,8 +147,8 @@ Exact locations, values, commands, and success/failure checks are in `docs/EXTER
 - Ten spot ETFs have direct official stock-series analysis. For six futures ETFs and two ETNs, the
   stock series is intentionally a reference proxy rather than an exact reconstruction of the
   futures/TR original-index path; basis, rollover, and dividend reinvestment can change the result.
-- Local full-analysis contracts and rendering are verified, but the Secret-backed export and hosted
-  public payloads for this revision remain a separate live deployment gate.
+- The Secret-backed export and hosted public payloads are verified for the current revision; ongoing
+  provider availability and the first natural scheduled run remain operational evidence boundaries.
 - D1 failure is now surfaced as partial, but atomicity is not guaranteed across all bounded batches
   in one ingestion run.
 - Final origin-specific CSP/AdSense behavior and hosted `_headers` must be witnessed after deployment.
