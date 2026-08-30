@@ -1,7 +1,7 @@
 # Current Status
 
-- Current milestone: P10 stock-reference analysis — implementation and local release verification complete
-- Last completed milestone: 18-product Samsung Electronics/SK hynix target-price and compound analysis
+- Current milestone: P10 stock-reference analysis — production deployment and live smoke complete
+- Last completed milestone: 18-product live stock-series target-price and compound analysis
 - Quick verification command: `pnpm verify:quick`
 - Full verification command: `pnpm verify`
 
@@ -38,21 +38,21 @@
   API-error visual is intentionally skipped in fixture verification.
 - `pnpm verify:quick` separately passes all 30 calculation-core and 37 contract/provider tests.
 - `pnpm audit --audit-level high` reports no known vulnerabilities.
-- The prior Pages-static `pnpm release:check` passed its environment, workflow, build, security,
-  privacy, SEO, and advertising gates with Secret-generated official JSON. The P10 mapping/export
-  contract is covered locally; its live Actions invocation remains the deployment gate.
+- Pages run `33337219740` passed the current `pnpm release:check` environment, mapping, stock-series,
+  build, security, privacy, SEO, and advertising gates with Secret-generated official JSON.
 - Current-run rendered direct/proxy result states were inspected at 390px and 1440px. Responsive proxy
   flows pass at 360, 390, 430, 768, 1280, and 1440px without horizontal overflow; proxy result axe
   checks pass at both 390px and 1440px.
-- PRs #1–#3 were merged after CI. Main CI run `33314666323` passed `pnpm verify`, and Pages run
-  `33314666328` generated, validated, uploaded, and deployed the official-data artifact successfully.
-- The prior public baseline and all 18 product payloads were fetched successfully. That payload set contains
-  1,152 official price points, preserves the provider's actual latest `basDt` (`2026-08-27` for this
-  run), and contains no service key or upstream URL marker. A new Pages run must separately witness
-  the added stock series and full-analysis payload contract before those are described as live.
-- The prior deployed-release Chromium smoke at 390px and 1440px completed product selection,
-  purchase entry, and calculation with zero console, page, request, or horizontal-overflow errors.
-  P10's current rendered evidence is production-static/local until its Pages deployment completes.
+- PR #5 was merged after independent review and CI run `33337048053`. Main CI run `33337219738`
+  passed `pnpm verify`, and Pages run `33337219740` generated, release-checked, uploaded, and deployed
+  commit `e3a7021f1cec4444c183b00ef5e3aa784ff4abda` successfully.
+- All 18 public payloads passed a post-deploy fetch: nine map to Samsung Electronics (`005930`), nine
+  to SK hynix (`000660`), ten use `underlying-stock`, and eight use `reference-stock-proxy`. Every
+  payload has non-empty product/stock series and a shared `analysisDate` of `2026-08-27`; none
+  contains a service key or upstream URL marker.
+- Hosted Chromium smoke completed Samsung direct analysis at 390px and SK hynix inverse-futures proxy
+  analysis at 1440px. Both showed won target prices and compound results with zero console, page,
+  request, or horizontal-overflow errors.
 
 ## Operational follow-up
 
@@ -91,11 +91,9 @@
 
 ## Next exact actions
 
-1. Deploy the full-analysis revision and witness all 18 public payloads with non-empty, correctly
-   identified stock series, a common analysis date, and no secret/upstream leakage.
-2. Witness the next natural weekday `15:40 KST` scheduled run and confirm its conclusion and
+1. Witness the next natural weekday `15:40 KST` scheduled run and confirm its conclusion and
    provider-reported `basDt` without assuming same-day availability.
-3. Keep AdSense disabled until approval, complete slot configuration, and consent readiness.
+2. Keep AdSense disabled until approval, complete slot configuration, and consent readiness.
 
 ## Screenshot evidence
 

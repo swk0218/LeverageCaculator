@@ -8,6 +8,7 @@ import {
 const COMMON_EVIDENCE =
   'https://www.samsungpop.com/ux/kor/customer/notice/notice/noticeViewContent.do?MenuSeqNo=23968';
 const CATALOG_VERIFIED_AT = '2026-08-26';
+const LIVE_UNDERLYING_SERIES_VERIFIED_AT = '2026-08-31';
 const LISTED_DATE = '2026-05-27';
 
 type MasterSeed = Omit<
@@ -34,7 +35,8 @@ function verifiedFull(seed: MasterSeed): ProductMasterEntry {
       verifiedAt: CATALOG_VERIFIED_AT,
       sourceName,
       evidenceUrl,
-      liveUnderlyingSeriesVerified: false,
+      liveUnderlyingSeriesVerified: true,
+      liveUnderlyingSeriesVerifiedAt: LIVE_UNDERLYING_SERIES_VERIFIED_AT,
     },
   });
 }

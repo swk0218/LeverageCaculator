@@ -2,13 +2,13 @@
 
 ## Release verdict
 
-The 18-product full-analysis release candidate passes every local product, calculation, Worker,
+The deployed 18-product full-analysis release passes every local product, calculation, Worker,
 privacy, accessibility, build, and visual gate. All products now support Samsung Electronics or SK
 hynix stock target-price and compound analysis; futures/TR products disclose that the stock series is
 a reference proxy rather than the futures/TR original-index basis used for daily target-multiple
-calculation. The approved key remains registered as a
-GitHub Actions Secret. The previous Pages release is witnessed; the full-analysis revision still
-requires its own Actions export/deployment witness. AdSense stays disabled.
+calculation. The approved key remains registered as a GitHub Actions Secret. Current main CI, the
+Secret-backed Pages export/deployment, all 18 public payloads, and hosted direct/proxy calculations
+are witnessed. AdSense stays disabled.
 
 ## Automated evidence
 
@@ -22,7 +22,7 @@ requires its own Actions export/deployment witness. AdSense stays disabled.
 | `pnpm test:visual`                | PASS: 20/20 fixture comparisons; one intentional live-only skip    |
 | Production build / Worker dry-run | PASS                                                               |
 | `pnpm audit --audit-level high`   | PASS: no known vulnerabilities                                     |
-| Release-check contract tests      | PASS in current Vitest; Secret-backed candidate rerun due          |
+| Pages-static release check        | PASS: Secret-backed Actions run `33337219740`                      |
 | `pnpm astryx doctor`              | PASS: 6 checks, 0 warnings, 0 failures                             |
 
 The calculation suite contains exact won-denominated target-price vectors for 1/5/20 days, rise,
@@ -78,10 +78,10 @@ accessibility, intuitiveness, and separation of necessary from unnecessary conte
 ## Browser and visual verification
 
 The in-app Browser was invoked first but could not establish its trusted desktop connection. The
-current P10 fallback is Playwright 1.62.1 Chromium against a fresh production-static Astro build;
-server reuse is disabled for the automated suite. The deployed-origin smoke at 390px and 1440px is
-evidence for the prior Pages release, not yet for P10. It completed product selection, purchase
-entry, and calculation with zero console, page, request, or horizontal-overflow errors.
+P10 fallback is Playwright 1.62.1 Chromium against both a fresh production-static Astro build and the
+deployed Pages origin. Hosted smoke selected Samsung direct analysis at 390px and SK hynix
+inverse-futures proxy analysis at 1440px, entered a purchase, and calculated the won target and
+compound panels with zero console, page, request, or horizontal-overflow errors.
 
 Current-run screenshots were inspected alongside their pre-audit counterparts at the same viewport
 and state. The accepted change removes the oversized intro, initial zeros, single-row delete,
@@ -132,11 +132,10 @@ verification after approval. GitHub Pages support for `_headers` is not assumed.
 
 ## Remaining evidence boundaries
 
-- The prior product-price-only FSC export is witnessed in Actions run `33314666328`: 18/18 payloads,
-  1,152 price points, and provider-reported latest `basDt` `2026-08-27`. The current candidate pins
-  all 18 product-to-stock mappings, requires non-empty identity/count-matched series and a common
-  date before publishing, and fails closed otherwise. Its Secret-backed Pages export is the remaining
-  live evidence gate.
+- Pages run `33337219740` generated and release-checked the full-analysis artifact. Post-deploy fetch
+  passed 18/18 payloads: nine Samsung Electronics, nine SK hynix, ten direct stock-basis, and eight
+  proxy mappings. Every payload has non-empty identity/count-matched series and a common
+  `analysisDate` of `2026-08-27`; no service key or upstream URL marker was found.
 - Ten spot ETFs use the official Samsung Electronics/SK hynix stock series as the direct analysis
   basis. Six futures ETFs and two ETNs use it only as a disclosed reference proxy; futures
   basis/rollover and TR dividend reinvestment mean their results are not exact original-index or product forecasts.
@@ -144,8 +143,9 @@ verification after approval. GitHub Pages support for `_headers` is not assumed.
   every bounded batch.
 - GitHub Pages browser behavior is witnessed. Worker-origin headers/CSP/CORS and AdSense consent
   remain unwitnessed because those optional services are not deployed or enabled.
-- Main CI run `33314666323` and Pages run `33314666328` passed. The first natural weekday `15:40 KST`
-  cron firing remains an operational recurrence check; the successful run was push-triggered.
+- PR CI run `33337048053`, main CI run `33337219738`, and Pages run `33337219740` passed. The first
+  natural weekday `15:40 KST` cron firing remains an operational recurrence check; the successful
+  current-revision run was push-triggered.
 
 ## Screenshot evidence
 

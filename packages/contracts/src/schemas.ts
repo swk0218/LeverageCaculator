@@ -172,8 +172,19 @@ export const ProductVerificationSchema = z
       .url()
       .refine((url) => url.startsWith('https://'), '검증 URL은 HTTPS여야 합니다.'),
     liveUnderlyingSeriesVerified: z.boolean(),
+    liveUnderlyingSeriesVerifiedAt: ISODateSchema.optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((verification, context) => {
+    const hasVerifiedAt = verification.liveUnderlyingSeriesVerifiedAt !== undefined;
+    if (verification.liveUnderlyingSeriesVerified !== hasVerifiedAt) {
+      context.addIssue({
+        code: 'custom',
+        message: '실데이터 기초자산 시계열 검증 여부와 검증일은 함께 제공해야 합니다.',
+        path: ['liveUnderlyingSeriesVerifiedAt'],
+      });
+    }
+  });
 
 export const ProductMasterEntrySchema = ProductSchema.extend({
   verification: ProductVerificationSchema,

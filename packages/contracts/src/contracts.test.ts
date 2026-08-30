@@ -10,6 +10,7 @@ import {
   LiveFscMarketDataProvider,
   PRODUCT_MASTER,
   PriceSeriesSchema,
+  ProductMasterEntrySchema,
   ProductSchema,
   ProductDataBundleSchema,
   SANITIZED_FSC_AUTH_ERROR,
@@ -49,6 +50,28 @@ describe('runtime contracts', () => {
     const missingType = { ...product };
     delete missingType.baseIndexType;
     expect(ProductSchema.safeParse(missingType).success).toBe(false);
+  });
+
+  it('requires live underlying-series verification status and date together', () => {
+    const entry = PRODUCT_MASTER[0]!;
+    expect(
+      ProductMasterEntrySchema.safeParse({
+        ...entry,
+        verification: {
+          ...entry.verification,
+          liveUnderlyingSeriesVerifiedAt: undefined,
+        },
+      }).success,
+    ).toBe(false);
+    expect(
+      ProductMasterEntrySchema.safeParse({
+        ...entry,
+        verification: {
+          ...entry.verification,
+          liveUnderlyingSeriesVerified: false,
+        },
+      }).success,
+    ).toBe(false);
   });
 
   it('validates every browser-facing fixture bundle', () => {
@@ -247,7 +270,8 @@ describe('verified product master', () => {
       expect(entry.code.startsWith('F')).toBe(false);
       expect(entry.verification.status).toBe('verified');
       expect(entry.verification.evidenceUrl).toMatch(/^https:\/\//);
-      expect(entry.verification.liveUnderlyingSeriesVerified).toBe(false);
+      expect(entry.verification.liveUnderlyingSeriesVerified).toBe(true);
+      expect(entry.verification.liveUnderlyingSeriesVerifiedAt).toBe('2026-08-31');
       expect(entry.analysisCapability).toBe('full');
       expect(entry.underlyingType).toBe('stock');
       expect(['005930', '000660']).toContain(entry.underlyingId);
