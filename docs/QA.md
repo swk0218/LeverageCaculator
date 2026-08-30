@@ -2,25 +2,25 @@
 
 ## Release verdict
 
-The release candidate passes every local product, calculation, Worker, privacy, accessibility,
-build, and visual gate. The approved key is registered as a GitHub Actions Secret, while the first
-live 18-product export, Pages deployment, and hosted smoke remain external evidence. AdSense stays
+The production release passes every local product, calculation, Worker, privacy, accessibility,
+build, and visual gate. The approved key is registered as a GitHub Actions Secret. Main CI, the
+live 18-product export, Pages deployment, and hosted 390px/1440px smoke are witnessed. AdSense stays
 disabled.
 
 ## Automated evidence
 
-| Gate                              | Current result                                                        |
-| --------------------------------- | --------------------------------------------------------------------- |
-| `pnpm verify:quick`               | PASS: format, lint, strict TypeScript, core 30/30, contracts 29/29    |
-| `pnpm test`                       | PASS: 9 files, 87/87 tests                                            |
-| Core coverage                     | PASS: 99.34% statements, 97.87% branches, 100% functions, 100% lines  |
-| Workerd + local D1 integration    | PASS: 1/1 runtime test                                                |
-| `pnpm test:e2e`                   | PASS: 18/18 production-static Chromium scenarios                      |
-| `pnpm test:a11y`                  | PASS: 3/3; all axe WCAG violation severities: 0                       |
-| `pnpm test:visual`                | PASS: 20/20 fixture comparisons; one intentional live-only skip       |
-| `pnpm audit --audit-level high`   | PASS: no known vulnerabilities                                        |
-| Pages-static `pnpm release:check` | PASS through build/artifact gates; fail-closed without generated JSON |
-| `pnpm astryx doctor`              | PASS: 6 checks, 0 warnings, 0 failures                                |
+| Gate                              | Current result                                                       |
+| --------------------------------- | -------------------------------------------------------------------- |
+| `pnpm verify:quick`               | PASS: format, lint, strict TypeScript, core 30/30, contracts 29/29   |
+| `pnpm test`                       | PASS: 9 files, 87/87 tests                                           |
+| Core coverage                     | PASS: 99.34% statements, 97.87% branches, 100% functions, 100% lines |
+| Workerd + local D1 integration    | PASS: 1/1 runtime test                                               |
+| `pnpm test:e2e`                   | PASS: 18/18 production-static Chromium scenarios                     |
+| `pnpm test:a11y`                  | PASS: 3/3; all axe WCAG violation severities: 0                      |
+| `pnpm test:visual`                | PASS: 20/20 fixture comparisons; one intentional live-only skip      |
+| `pnpm audit --audit-level high`   | PASS: no known vulnerabilities                                       |
+| Pages-static `pnpm release:check` | PASS in Secret-backed Actions; fail-closed without generated JSON    |
+| `pnpm astryx doctor`              | PASS: 6 checks, 0 warnings, 0 failures                               |
 
 The calculation suite contains the required rise, rise/fall, inverse -2X, multiple-lot, date,
 common-analysis-date, missing-intermediate-date, and partial-analysis vectors. Property tests cover
@@ -69,9 +69,10 @@ accessibility, intuitiveness, and separation of necessary from unnecessary conte
 ## Browser and visual verification
 
 The in-app Browser was invoked first but could not establish its trusted desktop connection. The
-current-run fallback is Playwright 1.62.1 Chromium against a fresh production-static Astro
-build on the local test server. Server reuse is disabled for the automated suite. Captured console
-warnings/errors: 0.
+current-run fallback is Playwright 1.62.1 Chromium against both a fresh production-static Astro
+build and the deployed GitHub Pages origin. Server reuse is disabled for the automated suite.
+Production smoke at 390px and 1440px completed product selection, purchase entry, and calculation
+with zero console, page, request, or horizontal-overflow errors.
 
 Current-run screenshots were inspected alongside their pre-audit counterparts at the same viewport
 and state. The accepted change removes the oversized intro, initial zeros, single-row delete,
@@ -121,12 +122,15 @@ verification after approval. GitHub Pages support for `_headers` is not assumed.
 
 ## Remaining evidence boundaries
 
-- Live FSC responses, latest dates, and quota behavior must be witnessed in the first Actions run;
-  exact underlying series remain unverified, so production products stay conservatively actual-only.
+- Live FSC responses and latest dates are witnessed in Actions run `33314666328`: 18/18 payloads,
+  1,152 price points, and provider-reported latest `basDt` `2026-08-27`. Ongoing quota behavior and
+  exact underlying series remain external, so production products stay conservatively actual-only.
 - D1 batch failure is surfaced as partial and never green, but one ingestion run is not atomic across
   every bounded batch.
-- Final Pages/Worker headers, CSP, CORS, consent, and browser behavior require the deployed origins.
-- The current release candidate still requires PR/CI, merge, and a successful Pages deployment.
+- GitHub Pages browser behavior is witnessed. Worker-origin headers/CSP/CORS and AdSense consent
+  remain unwitnessed because those optional services are not deployed or enabled.
+- Main CI run `33314666323` and Pages run `33314666328` passed. The first natural weekday `15:40 KST`
+  cron firing remains an operational recurrence check; the successful run was push-triggered.
 
 ## Current screenshot paths
 

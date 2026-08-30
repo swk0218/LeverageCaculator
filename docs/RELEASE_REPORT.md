@@ -19,9 +19,9 @@
   noindex, disabled-by-default advertising, and data-error contact path.
 - P8: Complete — full local verification, responsive/visual/privacy/accessibility QA, console, bundle,
   dependency, secret, security-header, dead-code, and copy review.
-- P9: Pages-static release candidate complete — official-data export, 15:40 KST scheduling, release
-  gate, deployment/rollback instructions, and this evidence report. Live Actions/Pages witnessing
-  and AdSense remain external.
+- P9: Pages-static production release complete — official-data export, 15:40 KST scheduling, release
+  gate, deployment/rollback instructions, live Actions/Pages witnessing, and hosted browser smoke.
+  AdSense remains external and disabled.
 
 ## Implemented
 
@@ -81,7 +81,9 @@ The browser sends public product/date identifiers only. Worker credentials and D
 - Worker/D1: migration, seed, sync, idempotent upsert, per-product health coverage, last-sync status,
   products/analysis APIs, and partial-failure signaling are implemented and locally tested.
 - The approved key is registered as `DATA_GO_KR_SERVICE_KEY` in GitHub Actions Secrets; the value was
-  not read. The first real payload and latest `basDt` still require the release workflow run.
+  not read. Pages run `33314666328` exported all 18 products and 1,152 official price points. Every
+  payload preserved the provider's actual latest `basDt` (`2026-08-27` in that run), and public
+  artifacts contained neither the key nor an upstream URL marker.
 
 ## Privacy and security
 
@@ -106,34 +108,36 @@ The browser sends public product/date identifiers only. Worker credentials and D
 - `pnpm astryx doctor`: 6 passed, 0 warnings, 0 failures.
 - `pnpm audit --audit-level high`: PASS, no known vulnerabilities.
 - Pages-static `pnpm release:check`: environment, workflow, build, security, privacy, SEO, and ad gates
-  PASS; without Secret-generated JSON it fails closed exactly on the missing data directory.
+  PASS in the Secret-backed Actions deployment; without generated JSON it still fails closed exactly
+  on the missing data directory.
 
 ## Deployment
 
-- Current release candidate: locally verified and awaiting PR/CI/merge.
-- Existing public URL: `https://swk0218.github.io/LeverageCaculator/` is a prior fixture preview and
-  does not prove the current local revision.
-- Target live structure: GitHub source → Actions official-data export → GitHub Pages static site.
+- Witnessed application revision: `223f5dbbe1257ace6bf454a97e7c090d6b340df9`, with main CI run
+  `33314666323` and Pages run `33314666328` both successful.
+- Public URL: `https://swk0218.github.io/LeverageCaculator/` serves the current official-data build.
+- Live structure: GitHub source → Actions official-data export → GitHub Pages static site.
 - Live Worker/API/D1 URL: none; this is an optional future expansion and not a Pages blocker.
 
 ## External actions remaining
 
-1. Open and merge a CI-green PR.
-2. Witness 18 real product exports, a positive Pages-static release check, and Pages deployment.
-3. Verify representative JSON `basDt`, freshness, console, privacy boundary, and 390px/1440px UI.
-4. Enable AdSense only after approval and consent readiness; otherwise keep it disabled.
+1. Witness the first naturally scheduled weekday `15:40 KST` run. The successful push-triggered run
+   proves the same export/deploy path, but not that the cron event has fired by itself.
+2. Enable AdSense only after approval and consent readiness; otherwise keep it disabled.
 
 Exact locations, values, commands, and success/failure checks are in `docs/EXTERNAL_ACTIONS.md` and
 `docs/DEPLOY.md`.
 
 ## Known limitations
 
-- Live FSC payload, quota, freshness, and exact underlying series await the first Actions run.
-- Production products intentionally remain actual-only until live series evidence exists.
+- The live FSC payload and public artifact are witnessed. The provider's actual publication date may
+  lag the collection time, so the UI exposes `basDt` instead of claiming same-day closing data.
+- Exact underlying series remain unverified, so production products intentionally stay actual-only.
 - D1 failure is now surfaced as partial, but atomicity is not guaranteed across all bounded batches
   in one ingestion run.
 - Final origin-specific CSP/AdSense behavior and hosted `_headers` must be witnessed after deployment.
-- No current-revision Pages deployment, live latest-date check, or ad activation was yet witnessed.
+- No naturally scheduled cron execution or ad activation has yet been witnessed. The current-revision
+  push-triggered Pages deployment, live latest-date check, and hosted calculator smoke are witnessed.
 
 ## Important files
 

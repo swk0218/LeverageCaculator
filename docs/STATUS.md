@@ -1,7 +1,7 @@
 # Current Status
 
-- Current milestone: P9 Pages-static release candidate — local verification complete; live Actions/Pages witness pending
-- Last completed milestone: official-data static export, 15:40 KST scheduling, and Pages release hardening
+- Current milestone: P9 Pages-static production release — public deployment and live-data smoke complete
+- Last completed milestone: official-data static export, 15:40 KST scheduling, and GitHub Pages release
 - Quick verification command: `pnpm verify:quick`
 - Full verification command: `pnpm verify`
 
@@ -30,16 +30,24 @@
 - Calculation core coverage is 99.34% statements, 97.87% branches, 100% functions, and 100% lines.
 - `pnpm audit --audit-level high` reports no known vulnerabilities.
 - Pages-static `pnpm release:check` passes its environment, workflow, build, security, privacy, SEO,
-  and advertising gates and fails closed locally only because Secret-generated official JSON is absent.
+  and advertising gates. The live Actions run also passed with Secret-generated official JSON.
 - Current-run 1440px and 390px rendered task, validation, full-result, partial-result, and product-list
   states were inspected. Browser console warnings/errors were zero.
+- PRs #1–#3 were merged after CI. Main CI run `33314666323` passed `pnpm verify`, and Pages run
+  `33314666328` generated, validated, uploaded, and deployed the official-data artifact successfully.
+- The public site and all 18 product payloads were fetched successfully. The payload set contains
+  1,152 official price points, preserves the provider's actual latest `basDt` (`2026-08-27` for this
+  run), and contains no service key or upstream URL marker.
+- Production Chromium smoke at 390px and 1440px completed product selection, purchase entry, and
+  calculation with zero console, page, request, or horizontal-overflow errors.
 
-## In progress
+## Operational follow-up
 
-- The approved `DATA_GO_KR_SERVICE_KEY` is registered as one repository Actions Secret; its value was
-  not read or copied.
-- A PR, CI run, live 18-product export, Pages deployment, and deployed-data/browser smoke are the
-  remaining release evidence.
+- The approved `DATA_GO_KR_SERVICE_KEY` remains registered as one repository Actions Secret; its
+  value was not read, copied, logged, or included in the public artifact.
+- The push-triggered production cycle is witnessed. The first naturally scheduled weekday
+  `15:40 KST` cycle remains an operational recurrence check, not a blocker for the working public
+  release.
 
 ## External or excluded scope
 
@@ -52,10 +60,12 @@
 - `pnpm verify` passes with 87 unit/contract/web/Worker tests, one Workerd+D1 integration test, 18
   non-visual E2E tests, three accessibility tests, and 20 visual comparisons; one live-only API-error
   visual is intentionally skipped in fixture verification.
-- A local Pages-static `pnpm release:check` without Secret-generated JSON fails exactly on the missing
-  data directory. The positive live release gate must be witnessed in GitHub Actions.
-- Until that run succeeds, the existing GitHub Pages fixture preview must not be treated as evidence
-  of this revision.
+- A local Pages-static `pnpm release:check` without Secret-generated JSON still fails exactly on the
+  missing data directory by design; the positive Secret-backed gate is witnessed in GitHub Actions.
+- The successful run was push-triggered on a weekend. It proves export and deployment wiring, but it
+  is not evidence that the weekday cron has fired naturally yet.
+- The provider's reported `basDt` remains authoritative. A 15:40 run never substitutes its generation
+  date for a trade date, so a provider publication delay remains visible rather than appearing fresh.
 - Codex's in-app Browser could not establish its trusted desktop connection. Production-static
   Chromium Playwright was used for the current rendered interaction, accessibility, privacy,
   responsive, console, and visual evidence.
@@ -64,11 +74,9 @@
 
 ## Next exact actions
 
-1. Commit the reviewed release candidate, open a PR, and require CI to pass.
-2. Merge the PR and witness the push-triggered official-data export, Pages release gate, and deploy.
-3. Verify a representative static JSON, its actual `basDt`, the public 390px/1440px UI, console, and
-   privacy boundary.
-4. Leave AdSense disabled until approval and consent readiness.
+1. Witness the next natural weekday `15:40 KST` scheduled run and confirm its conclusion and
+   provider-reported `basDt` without assuming same-day availability.
+2. Keep AdSense disabled until approval, complete slot configuration, and consent readiness.
 
 ## Latest screenshots
 
