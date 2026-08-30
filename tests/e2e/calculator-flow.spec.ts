@@ -129,7 +129,9 @@ test.describe('calculator fixture flow', () => {
     await fillPurchase(page, 1, purchases.first);
     await calculate(page);
     await expect(page.getByText('-2X', { exact: true })).toBeVisible();
-    await expect(resultMetric(page, '본주 본전 조건')).toContainText(/[-+]\d|분석 불가/);
+    await expect(resultMetric(page, '본주 환산 본전 조건')).toContainText(/[-+]\d|분석 불가/);
+    await expect(resultRegion(page)).toContainText('본주 환산 참고');
+    await expect(resultRegion(page)).toContainText('본주 기준 복리효과와 실제 상품 성과');
 
     await selectProduct(page, fixtureProducts.stale);
     await fillPurchase(page, 1, purchases.first);
@@ -146,6 +148,34 @@ test.describe('calculator fixture flow', () => {
     await expect(resultRegion(page)).toContainText(
       '기초지수 매핑이 검증되지 않아 실제 손익과 상품 자체 본전만 제공합니다.',
     );
+  });
+
+  test('shows stock target prices and both favorable and unfavorable compound effects', async ({
+    page,
+  }) => {
+    await selectProduct(page, fixtureProducts.full);
+    await fillPurchase(page, 1, purchases.first);
+    await calculate(page);
+    await expect(resultRegion(page)).toContainText('2026.08.25 종가');
+    await expect(resultRegion(page)).toContainText(/목표 약 \d+원/);
+    await expect(resultRegion(page)).toContainText('불리하게 작용했습니다.');
+
+    for (const tradingDays of [1, 5, 20]) {
+      await page.getByRole('radio', { name: `${tradingDays}거래일` }).check();
+      await expect(resultRegion(page)).toContainText(`목표 약`);
+    }
+
+    await selectProduct(page, fixtureProducts.positive);
+    await fillPurchase(page, 1, purchases.first);
+    await calculate(page);
+    await expect(resultRegion(page)).toContainText('2,400원 유리하게 작용했습니다.');
+
+    await selectProduct(page, fixtureProducts.inverse);
+    await fillPurchase(page, 1, purchases.first);
+    await calculate(page);
+    await expect(resultMetric(page, '본주 환산 복리효과')).toContainText(/[-+]\d/);
+    await expect(resultRegion(page)).toContainText('본주 환산 참고');
+    await expect(resultRegion(page)).toContainText(/목표 약 \d+원/);
   });
 
   test('invalidates stale results when a new purchase row is added', async ({ page }) => {

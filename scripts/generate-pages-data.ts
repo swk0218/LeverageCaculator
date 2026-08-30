@@ -151,6 +151,38 @@ function latestCommonDate(
     .at(-1);
 }
 
+function expectedUnderlyingSource(product: Product): 'fsc-stock' | 'fsc-market-index' {
+  return product.underlyingType === 'stock' ? 'fsc-stock' : 'fsc-market-index';
+}
+
+function verifiedUnderlyingSeries(
+  expectedProduct: Product,
+  providerData: ProviderProductData,
+): NonNullable<ProviderProductData['underlyingSeries']> {
+  const underlyingSeries = providerData.underlyingSeries;
+  if (underlyingSeries === undefined) {
+    throw new StaticDataExportError('MISSING_UNDERLYING_SERIES');
+  }
+  if (underlyingSeries.prices.length === 0) {
+    throw new StaticDataExportError('EMPTY_UNDERLYING_SERIES');
+  }
+
+  const { asset } = underlyingSeries;
+  if (
+    asset.id !== `underlying:${expectedProduct.underlyingId}` ||
+    asset.symbol !== expectedProduct.underlyingId ||
+    asset.name !== expectedProduct.underlyingName ||
+    asset.assetType !== expectedProduct.underlyingType ||
+    asset.source !== expectedUnderlyingSource(expectedProduct)
+  ) {
+    throw new StaticDataExportError('UNDERLYING_ASSET_IDENTITY_MISMATCH');
+  }
+  if (underlyingSeries.upstreamTotalCount !== underlyingSeries.prices.length) {
+    throw new StaticDataExportError('FILTERED_UNDERLYING_COUNT_MISMATCH');
+  }
+  return underlyingSeries;
+}
+
 export function buildStaticAnalysisResponse(
   expectedProduct: Product,
   providerData: unknown,
@@ -171,18 +203,30 @@ export function buildStaticAnalysisResponse(
   }
 
   const productSeries = publicPriceSeries(parsed.productSeries.prices);
-  const underlyingSeries = parsed.underlyingSeries
-    ? publicPriceSeries(parsed.underlyingSeries.prices)
+  const providerUnderlyingSeries =
+    expectedProduct.analysisCapability === 'full'
+      ? verifiedUnderlyingSeries(expectedProduct, parsed)
+      : parsed.underlyingSeries;
+  const underlyingSeries = providerUnderlyingSeries
+    ? publicPriceSeries(providerUnderlyingSeries.prices)
     : [];
   const latestProduct = productSeries.at(-1)!;
   const latestUnderlying = underlyingSeries.at(-1);
   const analysisDate = latestCommonDate(productSeries, underlyingSeries);
+  if (expectedProduct.analysisCapability === 'full' && analysisDate === undefined) {
+    throw new StaticDataExportError('NO_COMMON_TRADE_DATE');
+  }
   const checkedAt = dateInSeoul(generatedAt);
   const stale = assessStaleness(latestProduct.date, checkedAt);
   const warnings: string[] = [];
 
   if (parsed.product.analysisCapability === 'actual-only') {
     warnings.push('검증된 기초자산 시계열이 없어 실제 상품 가격 기준 결과만 제공합니다.');
+  }
+  if (expectedProduct.analysisBasis === 'reference-stock-proxy') {
+    warnings.push(
+      `일간 배수 산정 원지수인 ${expectedProduct.baseIndexName ?? '상품 원지수'} 대신 ${expectedProduct.underlyingName} 본주 종가를 환산 분석에 사용하므로 실제 상품 결과와 차이가 날 수 있습니다.`,
+    );
   }
   if (stale.isStale) {
     warnings.push('공식 가격 기준일이 평일 기준 2일 이상 지연되었습니다.');

@@ -17,6 +17,13 @@ interface ComparisonValue {
 }
 
 export function CompoundComparison({ product, result }: Props) {
+  const isReferenceStockProxy = product.analysisBasis === 'reference-stock-proxy';
+  const proxyDifference =
+    product.baseIndexType === 'futures-index'
+      ? '선물 베이시스와 롤오버'
+      : product.baseIndexType === 'total-return-index'
+        ? '배당 재투자'
+        : '추적 방식';
   if (
     result.simpleTheoreticalPnlWon === undefined ||
     result.dailyTheoreticalPnlWon === undefined ||
@@ -60,11 +67,22 @@ export function CompoundComparison({ product, result }: Props) {
   return (
     <section className="comparison-panel" aria-labelledby="compound-heading">
       <div className="panel-heading">
-        <h3 id="compound-heading">복리효과와 실제 상품 성과</h3>
+        <h3 id="compound-heading">
+          {isReferenceStockProxy
+            ? '본주 기준 복리효과와 실제 상품 성과'
+            : '복리효과와 실제 상품 성과'}
+        </h3>
         <span className="section-hint">
           {result.analysisDate?.replaceAll('-', '.')} 공식 분석 기준
         </span>
       </div>
+      {isReferenceStockProxy && (
+        <p className="assumption-note">
+          이 상품은 {product.baseIndexName ?? '상품 원지수'}의 일간수익률에 목표 배수를 적용하므로{' '}
+          {product.underlyingName} 본주 종가를 기준으로 환산한 분석입니다. 실제 상품 결과에는{' '}
+          {proxyDifference} 차이가 포함될 수 있습니다.
+        </p>
+      )}
       <ul className="comparison-table" aria-label="단순 배수, 일일 복리, 실제 상품 성과 비교">
         {values.map((item) => {
           const width = `${(Math.abs(item.value) / maxMagnitude) * 100}%`;

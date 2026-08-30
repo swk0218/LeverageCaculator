@@ -24,11 +24,23 @@ export const ProductSchema = z
     underlyingId: z.string().trim().min(1),
     underlyingName: z.string().trim().min(1),
     underlyingType: z.enum(['stock', 'spot-index', 'futures-index']),
+    analysisBasis: z.enum(['underlying-stock', 'reference-stock-proxy']).optional(),
+    baseIndexName: z.string().trim().min(1).optional(),
+    baseIndexType: z.enum(['price-return-index', 'futures-index', 'total-return-index']).optional(),
     listedDate: ISODateSchema,
     analysisCapability: z.enum(['full', 'actual-only']),
     active: z.boolean(),
   })
-  .strict();
+  .strict()
+  .superRefine((product, context) => {
+    if ((product.baseIndexName === undefined) !== (product.baseIndexType === undefined)) {
+      context.addIssue({
+        code: 'custom',
+        message: '원지수 이름과 유형은 함께 제공해야 합니다.',
+        path: ['baseIndexName'],
+      });
+    }
+  });
 
 export const PricePointSchema = z
   .object({
@@ -138,6 +150,14 @@ export const ProductDataBundleSchema = z
       context.addIssue({
         code: 'custom',
         message: 'actual-only 상품은 검증되지 않은 기초자산 시계열을 포함할 수 없습니다.',
+        path: ['underlyingSeries'],
+      });
+    }
+
+    if (bundle.product.analysisCapability === 'full' && bundle.underlyingSeries.length === 0) {
+      context.addIssue({
+        code: 'custom',
+        message: 'full 상품은 비어 있지 않은 분석용 기초자산 시계열을 포함해야 합니다.',
         path: ['underlyingSeries'],
       });
     }

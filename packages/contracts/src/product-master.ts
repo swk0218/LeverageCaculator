@@ -7,7 +7,7 @@ import {
 
 const COMMON_EVIDENCE =
   'https://www.samsungpop.com/ux/kor/customer/notice/notice/noticeViewContent.do?MenuSeqNo=23968';
-const VERIFIED_AT = '2026-08-26';
+const CATALOG_VERIFIED_AT = '2026-08-26';
 const LISTED_DATE = '2026-05-27';
 
 type MasterSeed = Omit<
@@ -18,7 +18,7 @@ type MasterSeed = Omit<
   sourceName?: string;
 };
 
-function verifiedActualOnly(seed: MasterSeed): ProductMasterEntry {
+function verifiedFull(seed: MasterSeed): ProductMasterEntry {
   const {
     evidenceUrl = COMMON_EVIDENCE,
     sourceName = '공식 증권사 신규상장 안내',
@@ -27,11 +27,11 @@ function verifiedActualOnly(seed: MasterSeed): ProductMasterEntry {
   return ProductMasterEntrySchema.parse({
     ...product,
     listedDate: LISTED_DATE,
-    analysisCapability: 'actual-only',
+    analysisCapability: 'full',
     active: true,
     verification: {
       status: 'verified',
-      verifiedAt: VERIFIED_AT,
+      verifiedAt: CATALOG_VERIFIED_AT,
       sourceName,
       evidenceUrl,
       liveUnderlyingSeriesVerified: false,
@@ -39,29 +39,59 @@ function verifiedActualOnly(seed: MasterSeed): ProductMasterEntry {
   });
 }
 
-const samsungSpotIndex = 'KRX 삼성전자 레버리지 지수';
-const samsungFuturesIndex = 'KRX 삼성전자 선물 레버리지 지수';
-const hynixSpotIndex = 'KRX SK하이닉스 레버리지 지수';
-const hynixFuturesIndex = 'KRX SK하이닉스 선물 레버리지 지수';
+const samsungStock = {
+  underlyingId: '005930',
+  underlyingName: '삼성전자',
+  underlyingType: 'stock' as const,
+};
+const hynixStock = {
+  underlyingId: '000660',
+  underlyingName: 'SK하이닉스',
+  underlyingType: 'stock' as const,
+};
+const samsungSpotBaseIndex = {
+  baseIndexName: 'KRX 삼성전자 지수(PR)',
+  baseIndexType: 'price-return-index' as const,
+};
+const samsungFuturesBaseIndex = {
+  baseIndexName: 'KRX 삼성전자 선물 지수',
+  baseIndexType: 'futures-index' as const,
+};
+const samsungTrBaseIndex = {
+  baseIndexName: 'KRX 삼성전자 TR 지수',
+  baseIndexType: 'total-return-index' as const,
+};
+const hynixSpotBaseIndex = {
+  baseIndexName: 'KRX SK하이닉스 지수(PR)',
+  baseIndexType: 'price-return-index' as const,
+};
+const hynixFuturesBaseIndex = {
+  baseIndexName: 'KRX SK하이닉스 선물 지수',
+  baseIndexType: 'futures-index' as const,
+};
+const hynixTrBaseIndex = {
+  baseIndexName: 'KRX SK하이닉스 TR 지수',
+  baseIndexType: 'total-return-index' as const,
+};
 
 export const PRODUCT_MASTER: readonly ProductMasterEntry[] = [
-  verifiedActualOnly({
+  verifiedFull({
     code: '0198B0',
     name: '1Q 삼성전자선물단일종목레버리지',
     productType: 'ETF',
     leverage: 2,
-    underlyingId: samsungFuturesIndex,
-    underlyingName: samsungFuturesIndex,
-    underlyingType: 'futures-index',
+    ...samsungStock,
+    ...samsungFuturesBaseIndex,
+    analysisBasis: 'reference-stock-proxy',
   }),
-  verifiedActualOnly({
+  verifiedFull({
     code: '0194N0',
     name: 'KIWOOM 삼성전자선물단일종목레버리지',
     productType: 'ETF',
     leverage: 2,
-    underlyingId: samsungFuturesIndex,
-    underlyingName: samsungFuturesIndex,
-    underlyingType: 'futures-index',
+    ...samsungStock,
+    ...samsungFuturesBaseIndex,
+    analysisBasis: 'reference-stock-proxy',
   }),
   ...[
     '0193W0:KODEX 삼성전자단일종목레버리지',
@@ -71,57 +101,57 @@ export const PRODUCT_MASTER: readonly ProductMasterEntry[] = [
     '0193K0:PLUS 삼성전자단일종목레버리지',
   ].map((entry) => {
     const [code, name] = entry.split(':') as [string, string];
-    return verifiedActualOnly({
+    return verifiedFull({
       code,
       name,
       productType: 'ETF',
       leverage: 2,
-      underlyingId: samsungSpotIndex,
-      underlyingName: samsungSpotIndex,
-      underlyingType: 'spot-index',
+      ...samsungStock,
+      ...samsungSpotBaseIndex,
+      analysisBasis: 'underlying-stock',
     });
   }),
-  verifiedActualOnly({
+  verifiedFull({
     code: '520100',
     name: '미래에셋 레버리지 삼성전자 단일종목 ETN',
     productType: 'ETN',
     leverage: 2,
-    underlyingId: 'KRX 삼성전자 TR 레버리지 지수',
-    underlyingName: 'KRX 삼성전자 TR 레버리지 지수',
-    underlyingType: 'spot-index',
+    ...samsungStock,
+    ...samsungTrBaseIndex,
+    analysisBasis: 'reference-stock-proxy',
     evidenceUrl:
       'https://kind.krx.co.kr/disclosure/etnisudetail.do?method=searchEtnIsuSummary&strIsuSrtCd=Q520100',
     sourceName: 'KRX KIND 상품개요',
   }),
-  verifiedActualOnly({
+  verifiedFull({
     code: '0193L0',
     name: 'PLUS 삼성전자선물단일종목인버스2X',
     productType: 'ETF',
     leverage: -2,
-    underlyingId: 'KRX 삼성전자 선물 인버스 -2X 지수',
-    underlyingName: 'KRX 삼성전자 선물 인버스 -2X 지수',
-    underlyingType: 'futures-index',
+    ...samsungStock,
+    ...samsungFuturesBaseIndex,
+    analysisBasis: 'reference-stock-proxy',
     evidenceUrl:
       'https://kind.krx.co.kr/disclosure/etfisudetail.do?method=searchEtfIsuSummary&strIsurCd=0193L',
     sourceName: 'KRX KIND 상품개요',
   }),
-  verifiedActualOnly({
+  verifiedFull({
     code: '0194R0',
     name: 'KIWOOM SK하이닉스선물단일종목레버리지',
     productType: 'ETF',
     leverage: 2,
-    underlyingId: hynixFuturesIndex,
-    underlyingName: hynixFuturesIndex,
-    underlyingType: 'futures-index',
+    ...hynixStock,
+    ...hynixFuturesBaseIndex,
+    analysisBasis: 'reference-stock-proxy',
   }),
-  verifiedActualOnly({
+  verifiedFull({
     code: '0198D0',
     name: '1Q SK하이닉스선물단일종목레버리지',
     productType: 'ETF',
     leverage: 2,
-    underlyingId: hynixFuturesIndex,
-    underlyingName: hynixFuturesIndex,
-    underlyingType: 'futures-index',
+    ...hynixStock,
+    ...hynixFuturesBaseIndex,
+    analysisBasis: 'reference-stock-proxy',
   }),
   ...[
     '0193T0:KODEX SK하이닉스단일종목레버리지',
@@ -131,35 +161,35 @@ export const PRODUCT_MASTER: readonly ProductMasterEntry[] = [
     '0192L0:RISE SK하이닉스단일종목레버리지',
   ].map((entry) => {
     const [code, name] = entry.split(':') as [string, string];
-    return verifiedActualOnly({
+    return verifiedFull({
       code,
       name,
       productType: 'ETF',
       leverage: 2,
-      underlyingId: hynixSpotIndex,
-      underlyingName: hynixSpotIndex,
-      underlyingType: 'spot-index',
+      ...hynixStock,
+      ...hynixSpotBaseIndex,
+      analysisBasis: 'underlying-stock',
     });
   }),
-  verifiedActualOnly({
+  verifiedFull({
     code: '520101',
     name: '미래에셋 레버리지 SK하이닉스 단일종목ETN',
     productType: 'ETN',
     leverage: 2,
-    underlyingId: 'KRX SK하이닉스 TR 레버리지 지수',
-    underlyingName: 'KRX SK하이닉스 TR 레버리지 지수',
-    underlyingType: 'spot-index',
+    ...hynixStock,
+    ...hynixTrBaseIndex,
+    analysisBasis: 'reference-stock-proxy',
     evidenceUrl: 'https://kind.krx.co.kr/external/2026/05/22/000553/20260522001367/68342.htm',
     sourceName: 'KRX KIND 신규상장 공시',
   }),
-  verifiedActualOnly({
+  verifiedFull({
     code: '0197X0',
     name: 'SOL SK하이닉스선물단일종목인버스2X',
     productType: 'ETF',
     leverage: -2,
-    underlyingId: 'KRX SK하이닉스 선물 인버스 -2X 지수',
-    underlyingName: 'KRX SK하이닉스 선물 인버스 -2X 지수',
-    underlyingType: 'futures-index',
+    ...hynixStock,
+    ...hynixFuturesBaseIndex,
+    analysisBasis: 'reference-stock-proxy',
     evidenceUrl: 'https://www.soletf.co.kr/ko/fund/etf/211114?tabIndex=3',
     sourceName: '신한자산운용 SOL ETF 상품 페이지',
   }),
@@ -174,6 +204,9 @@ export function toProduct(entry: ProductMasterEntry): Product {
     underlyingId: entry.underlyingId,
     underlyingName: entry.underlyingName,
     underlyingType: entry.underlyingType,
+    ...(entry.analysisBasis === undefined ? {} : { analysisBasis: entry.analysisBasis }),
+    ...(entry.baseIndexName === undefined ? {} : { baseIndexName: entry.baseIndexName }),
+    ...(entry.baseIndexType === undefined ? {} : { baseIndexType: entry.baseIndexType }),
     listedDate: entry.listedDate,
     analysisCapability: entry.analysisCapability,
     active: entry.active,

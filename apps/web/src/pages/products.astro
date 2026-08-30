@@ -11,6 +11,19 @@ const typeLabel = {
   'futures-index': '선물 지수',
 };
 
+const baseIndexTypeLabel = {
+  'price-return-index': '현물 PR 원지수',
+  'futures-index': '선물 원지수',
+  'total-return-index': 'TR 원지수',
+};
+
+const analysisScopeLabel = (product: (typeof PRODUCT_MASTER)[number]) =>
+  product.analysisCapability !== 'full'
+    ? '실제 손익만'
+    : product.analysisBasis === 'reference-stock-proxy'
+      ? '본주 환산 분석'
+      : '본주 기준 분석';
+
 const productGroups = [
   {
     label: '삼성전자 기반 상품',
@@ -26,25 +39,25 @@ const productGroups = [
 <ContentLayout
   title="지원 상품과 데이터 기준"
   description="양복음복이 확인한 국내 상장 단일종목 레버리지·인버스 ETF/ETN과 공식 데이터 기준을 안내합니다."
-  intro="상품 수보다 매핑 정확도를 우선합니다. 상품명만 보고 배수나 기초자산을 추정하지 않습니다."
+  intro="지원하는 전 상품에서 삼성전자·SK하이닉스 본주 기준 본전 가격과 복리효과를 확인할 수 있습니다."
 >
   <p class="notice">
-    아래 상품은 2026년 8월 26일 기준 공식 상품 자료로 식별한 목록입니다. 공공데이터 실제 응답으로
-    기초지수 시계열까지 확인하기 전에는 보수적으로 ‘실제 손익만’ 제공합니다. 복리분석을 억지로
-    활성화하지 않습니다.
+    아래 상품은 공식 상품 자료로 식별한 목록입니다. 상품 종가와 삼성전자(005930)·SK하이닉스(000660)
+    종가를 함께 사용해 본전 조건과 복리효과를 계산합니다. 선물형과 TR형 ETN은 현물 본주와 정확히
+    같지 않으므로 ‘본주 환산 참고’로 구분합니다.
   </p>
 
   <h2 id="confirmed-products-heading">확인된 상품</h2>
   <div class="content-table-wrap" tabindex="0" role="region" aria-label="확인된 상품 표">
     <table>
-      <caption class="sr-only">종목코드, 상품명, 배수, 유형, 기초자산, 분석 범위</caption>
+      <caption class="sr-only">종목코드, 상품명, 배수, 유형, 분석 기준주식, 분석 범위</caption>
       <thead>
         <tr>
           <th scope="col">종목코드</th>
           <th scope="col">상품명</th>
           <th scope="col">배수</th>
-          <th scope="col">유형</th>
-          <th scope="col">기초자산</th>
+          <th scope="col">상품·일간 배수 산정 기준</th>
+          <th scope="col">분석 기준주식</th>
           <th scope="col">분석 범위</th>
         </tr>
       </thead>
@@ -60,10 +73,14 @@ const productGroups = [
               </td>
               <td>{product.leverage > 0 ? `+${product.leverage}X` : `${product.leverage}X`}</td>
               <td>
-                {product.productType} · {typeLabel[product.underlyingType]}
+                {product.productType} ·{' '}
+                {product.baseIndexType
+                  ? baseIndexTypeLabel[product.baseIndexType]
+                  : typeLabel[product.underlyingType]}
+                {product.baseIndexName && <small>{product.baseIndexName}</small>}
               </td>
               <td>{product.underlyingName}</td>
-              <td>{product.analysisCapability === 'full' ? '전체 분석' : '실제 손익만'}</td>
+              <td>{analysisScopeLabel(product)}</td>
             </tr>
           ))
         }
@@ -97,16 +114,23 @@ const productGroups = [
                   <div>
                     <dt>유형</dt>
                     <dd>
-                      {product.productType} · {typeLabel[product.underlyingType]}
+                      {product.productType} ·{' '}
+                      {product.baseIndexType
+                        ? baseIndexTypeLabel[product.baseIndexType]
+                        : typeLabel[product.underlyingType]}
                     </dd>
                   </div>
                   <div>
-                    <dt>기초자산</dt>
+                    <dt>일간 배수 산정 원지수</dt>
+                    <dd>{product.baseIndexName ?? '상품 공식 자료 참고'}</dd>
+                  </div>
+                  <div>
+                    <dt>분석 기준주식</dt>
                     <dd>{product.underlyingName}</dd>
                   </div>
                   <div>
                     <dt>분석 범위</dt>
-                    <dd>{product.analysisCapability === 'full' ? '전체 분석' : '실제 손익만'}</dd>
+                    <dd>{analysisScopeLabel(product)}</dd>
                   </div>
                 </dl>
                 <a href={product.verification.evidenceUrl} target="_blank" rel="noreferrer">
@@ -129,7 +153,7 @@ const productGroups = [
 
   <h2>가격 기준일과 지연 표시</h2>
   <p>
-    현재가는 최신 공식 상품 종가와 기준일을 함께 표시합니다. 상품과 기초자산의 날짜가 다르면 두
+    현재가는 최신 공식 상품 종가와 기준일을 함께 표시합니다. 상품과 분석 기준주식의 날짜가 다르면 두
     시계열이 모두 존재하는 최신 공통 거래일까지 복리분석합니다. 평일 기준 2일 이상 오래된 데이터는
     화면에서 지연 상태로 표시합니다.
   </p>
@@ -151,6 +175,12 @@ const productGroups = [
 <style>
   .product-group-list {
     display: none;
+  }
+
+  .content-table-wrap td small {
+    display: block;
+    margin-top: 4px;
+    color: var(--yb-muted);
   }
 
   @media (max-width: 700px) {

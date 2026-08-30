@@ -279,6 +279,7 @@ export class LiveFscMarketDataProvider implements MarketDataProvider {
   private readonly retryBaseDelayMs: number;
   private readonly pageSize: number;
   private readonly sleep: (milliseconds: number) => Promise<void>;
+  private readonly underlyingSeriesCache = new Map<string, Promise<ProviderSeries>>();
 
   constructor(options: LiveFscProviderOptions) {
     this.serviceKey = normalizedServiceKey(options.serviceKey);
@@ -300,14 +301,66 @@ export class LiveFscMarketDataProvider implements MarketDataProvider {
     const range = DataRangeSchema.parse(rangeInput);
     const productSeries = await this.fetchProductSeries(product, range);
     const underlyingSeries =
-      product.analysisCapability === 'full'
-        ? await this.fetchUnderlyingSeries(product, range)
+      product.analysisCapability === 'full' && productSeries.prices.length > 0
+        ? await this.fetchCachedUnderlyingSeries(product, range)
         : undefined;
     return ProviderProductDataSchema.parse({
       product,
       productSeries,
       ...(underlyingSeries === undefined ? {} : { underlyingSeries }),
     });
+  }
+
+  private underlyingSeriesCacheKey(product: Product, range: DataRange): string {
+    return JSON.stringify([
+      product.underlyingType,
+      product.underlyingId,
+      product.underlyingName,
+      range.from,
+      range.to,
+    ]);
+  }
+
+  private async fetchCachedUnderlyingSeries(
+    product: Product,
+    range: DataRange,
+  ): Promise<ProviderSeries> {
+    const cacheKey = this.underlyingSeriesCacheKey(product, range);
+    const cached = this.underlyingSeriesCache.get(cacheKey);
+    if (cached !== undefined) return cached;
+
+    const pending = this.fetchUnderlyingSeries(product, range).then((series) => {
+      if (
+        series.asset.symbol !== product.underlyingId ||
+        series.asset.name !== product.underlyingName ||
+        series.asset.assetType !== product.underlyingType ||
+        series.upstreamTotalCount !== series.prices.length
+      ) {
+        throw new FscProviderError(
+          'UNDERLYING_SERIES_IDENTITY_MISMATCH',
+          '공식 기초자산 시계열의 식별 정보가 상품 마스터와 일치하지 않습니다.',
+          false,
+        );
+      }
+      if (series.prices.length === 0) {
+        throw new FscProviderError(
+          'UNDERLYING_SERIES_EMPTY',
+          '공식 기초자산 시계열이 비어 있습니다.',
+          false,
+        );
+      }
+      return series;
+    });
+    this.underlyingSeriesCache.set(cacheKey, pending);
+
+    try {
+      return await pending;
+    } catch (error) {
+      if (this.underlyingSeriesCache.get(cacheKey) === pending) {
+        this.underlyingSeriesCache.delete(cacheKey);
+      }
+      throw error;
+    }
   }
 
   private async fetchProductSeries(product: Product, range: DataRange): Promise<ProviderSeries> {
@@ -343,6 +396,13 @@ export class LiveFscMarketDataProvider implements MarketDataProvider {
         FscStockItemSchema,
       );
       const exact = items.filter((item) => item.srtnCd === product.underlyingId);
+      if (exact.length !== items.length) {
+        throw new FscProviderError(
+          'UNDERLYING_SERIES_IDENTITY_MISMATCH',
+          '공식 기초자산 응답에 다른 종목이 포함되어 있습니다.',
+          false,
+        );
+      }
       return {
         asset: this.underlyingAsset(product, 'fsc-stock'),
         prices: sortAndValidateDates(exact.map(normalizePrice), range),
@@ -361,6 +421,13 @@ export class LiveFscMarketDataProvider implements MarketDataProvider {
       FscIndexItemSchema,
     );
     const exact = items.filter((item) => item.idxNm === product.underlyingName);
+    if (exact.length !== items.length) {
+      throw new FscProviderError(
+        'UNDERLYING_SERIES_IDENTITY_MISMATCH',
+        '공식 기초지수 응답에 다른 지수가 포함되어 있습니다.',
+        false,
+      );
+    }
     return {
       asset: this.underlyingAsset(product, 'fsc-market-index'),
       prices: sortAndValidateDates(exact.map(normalizePrice), range),

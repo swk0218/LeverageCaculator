@@ -1,5 +1,22 @@
 # Engineering Decisions
 
+## 2026-08-31 — Stock-price target and compound analysis for every production product
+
+Enable full analysis for all 18 production products with exact FSC stock-series lookups for Samsung
+Electronics `005930` and SK hynix `000660`. The user-facing question is the required Samsung/SK hynix
+share move and price, so the analysis series must be the actual share close rather than an already
+leveraged or inverse reference index. This also removes the double-leverage failure mode in the former
+master data.
+
+For the ten spot ETFs, mark the stock as the direct analysis basis. For the six futures ETFs and two
+TR-index ETNs, mark it as `reference-stock-proxy` and label the target and compound comparison as a
+stock-based conversion. Those products can diverge because of futures basis and rollover or dividend
+reinvestment. Store the unlevered `baseIndexName`/`baseIndexType` only as the original-index basis used
+to define the daily target multiple, not as a formal leveraged or inverse reference-index identity.
+Keep that limitation next to the result and include it in exported warnings. Export and ingestion
+fail closed unless both the product series and the exact stock series are non-empty and share an
+analysis date.
+
 ## 2026-08-30 — GitHub Pages official-data release
 
 Use GitHub Pages plus a scheduled GitHub Actions static export as the default live-data release.
@@ -31,7 +48,7 @@ The framework-free financial package is stored in `packages/calculation-core` wh
 
 All development and automated verification use sanitized, deterministic fixture price data. Production release checks fail closed when `PUBLIC_DATA_MODE=fixture`. Live provider code and Cloudflare configuration are implemented, while credential-dependent verification is reported separately.
 
-## 2026-08-26 — Evidence-conservative product capabilities
+## 2026-08-26 — Evidence-conservative product capabilities (superseded 2026-08-31)
 
 The production product master includes only products supported by current official issuer or KRX evidence. Every production entry remains `actual-only` until a valid Public Data Portal credential is used to capture and confirm the precise underlying series returned by the documented index operations. This prevents the calculator from silently applying leverage twice to an index that is itself already leveraged. Synthetic catalog rows use the explicit `product-master-unverified-series` lineage; it is not a verified price-series claim. Clearly named fixture-only +2X and -2X products provide full positive and negative compound-effect paths without weakening the production evidence standard.
 

@@ -16,6 +16,23 @@ const underlyingTypeLabel: Record<Product['underlyingType'], string> = {
   'futures-index': '선물 지수',
 };
 
+const baseIndexTypeLabel: Record<NonNullable<Product['baseIndexType']>, string> = {
+  'price-return-index': '현물 PR 원지수',
+  'futures-index': '선물 원지수',
+  'total-return-index': 'TR 원지수',
+};
+
+function analysisReferenceLabel(product: Product): string {
+  if (product.analysisBasis === 'reference-stock-proxy') return '본주 환산 참고';
+  return product.underlyingType === 'stock'
+    ? '본주 기준 분석'
+    : underlyingTypeLabel[product.underlyingType];
+}
+
+function analysisReferenceNoun(product: Product): string {
+  return product.underlyingType === 'stock' ? '분석 기준주식' : '기초지수';
+}
+
 export function ProductSearch({ products, selectedCode, inputRef, onSelect }: Props) {
   const inputId = useId();
   const listId = useId();
@@ -115,7 +132,7 @@ export function ProductSearch({ products, selectedCode, inputRef, onSelect }: Pr
                 id={`${listId}-${product.code}`}
                 type="button"
                 role="option"
-                aria-label={`${product.name}, ${product.code}, ${product.leverage > 0 ? `플러스 ${product.leverage}배` : `마이너스 ${Math.abs(product.leverage)}배`}, ${product.productType}, 기초자산 ${product.underlyingName}, ${underlyingTypeLabel[product.underlyingType]}`}
+                aria-label={`${product.name}, ${product.code}, ${product.leverage > 0 ? `플러스 ${product.leverage}배` : `마이너스 ${Math.abs(product.leverage)}배`}, ${product.productType}, ${product.baseIndexType ? `일간 배수 산정 기준 ${baseIndexTypeLabel[product.baseIndexType]}` : ''}, ${analysisReferenceNoun(product)} ${product.underlyingName}, ${analysisReferenceLabel(product)}`}
                 aria-selected={product.code === selectedCode}
                 tabIndex={-1}
                 className={`product-option ${index === activeIndex ? 'active' : ''}`}
@@ -133,9 +150,13 @@ export function ProductSearch({ products, selectedCode, inputRef, onSelect }: Pr
                     {product.leverage > 0 ? `+${product.leverage}X` : `${product.leverage}X`}
                   </span>
                   <span>{product.productType}</span>
-                  <span>{underlyingTypeLabel[product.underlyingType]}</span>
+                  <span>{analysisReferenceLabel(product)}</span>
                 </span>
-                <span className="product-underlying">기초자산 · {product.underlyingName}</span>
+                <span className="product-underlying">
+                  {product.baseIndexType &&
+                    `배수 산정 ${baseIndexTypeLabel[product.baseIndexType]} · `}
+                  {analysisReferenceNoun(product)} · {product.underlyingName}
+                </span>
               </button>
             ))}
           </div>
@@ -159,7 +180,9 @@ export function ProductSearch({ products, selectedCode, inputRef, onSelect }: Pr
             <strong>{selected.name}</strong>
             <p>
               <span className="product-code">{selected.code}</span> · {selected.productType} ·{' '}
-              {selected.underlyingName} · {underlyingTypeLabel[selected.underlyingType]}
+              {selected.baseIndexType &&
+                `배수 산정 ${baseIndexTypeLabel[selected.baseIndexType]} · `}
+              {selected.underlyingName} · {analysisReferenceLabel(selected)}
             </p>
           </div>
         </div>

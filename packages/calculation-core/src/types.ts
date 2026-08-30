@@ -15,6 +15,11 @@ export interface Product {
   underlyingId: string;
   underlyingName: string;
   underlyingType: 'stock' | 'spot-index' | 'futures-index';
+  /** Whether the analysis series is the direct stock basis or a clearly labelled stock proxy. */
+  analysisBasis?: 'underlying-stock' | 'reference-stock-proxy';
+  /** Unlevered index whose daily return defines the product's target multiple. */
+  baseIndexName?: string;
+  baseIndexType?: 'price-return-index' | 'futures-index' | 'total-return-index';
   listedDate: ISODate;
   analysisCapability: 'full' | 'actual-only';
   active: boolean;

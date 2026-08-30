@@ -4,6 +4,7 @@ export const STORAGE_KEY = 'yangbok-eumbok:calculator';
 
 export const fixtureProducts = {
   full: 'F2UP01',
+  positive: 'FPOS01',
   inverse: 'F2DN01',
   stale: 'FSTL01',
   mismatch: 'FMIS01',

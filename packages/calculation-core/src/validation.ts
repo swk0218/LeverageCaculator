@@ -182,6 +182,39 @@ export function validateAnalysisInput(input: AnalysisInput): ValidationIssue[] {
       ),
     );
   }
+  if (
+    product.analysisBasis !== undefined &&
+    !['underlying-stock', 'reference-stock-proxy'].includes(product.analysisBasis)
+  ) {
+    issues.push(
+      issue(
+        'product.analysis-basis-invalid',
+        'product.analysisBasis',
+        '분석 기준 유형이 올바르지 않습니다.',
+      ),
+    );
+  }
+  if (
+    product.baseIndexType !== undefined &&
+    !['price-return-index', 'futures-index', 'total-return-index'].includes(product.baseIndexType)
+  ) {
+    issues.push(
+      issue(
+        'product.base-index-type-invalid',
+        'product.baseIndexType',
+        '원지수 유형이 올바르지 않습니다.',
+      ),
+    );
+  }
+  if ((product.baseIndexName === undefined) !== (product.baseIndexType === undefined)) {
+    issues.push(
+      issue(
+        'product.base-index-incomplete',
+        'product.baseIndexName',
+        '원지수 이름과 유형은 함께 제공해야 합니다.',
+      ),
+    );
+  }
   if (product.analysisCapability !== 'full' && product.analysisCapability !== 'actual-only') {
     issues.push(
       issue(

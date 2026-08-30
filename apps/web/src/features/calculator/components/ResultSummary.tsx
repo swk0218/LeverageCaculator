@@ -27,7 +27,12 @@ export function ResultSummary({
   selectedPeriod,
   usingManualPrice,
 }: Props) {
-  const subject = product.underlyingType === 'stock' ? '본주' : '기초지수';
+  const subject =
+    product.analysisBasis === 'reference-stock-proxy'
+      ? '본주 환산'
+      : product.underlyingType === 'stock'
+        ? '본주'
+        : '기초지수';
   const productLabel = product.productType;
   const hasFullAnalysis = product.analysisCapability === 'full';
   const breakEvenDone = result.productBreakEvenReturn <= 0;
@@ -74,7 +79,11 @@ export function ResultSummary({
             </dd>
           </div>
           <div className="result-metric result-metric--theory">
-            <dt>복리효과</dt>
+            <dt>
+              {product.analysisBasis === 'reference-stock-proxy'
+                ? '본주 환산 복리효과'
+                : '복리효과'}
+            </dt>
             <dd>
               <span className={`primary-number ${tone(result.compoundEffectRate)}`}>
                 {result.compoundEffectRate === undefined

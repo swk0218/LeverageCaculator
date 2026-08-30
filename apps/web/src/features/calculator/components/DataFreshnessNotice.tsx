@@ -31,7 +31,7 @@ export function DataFreshnessNotice({ analysisCapability, stale, date, mismatch 
             <strong>공식 상품 종가 연결됨</strong>
             <p>
               {analysisCapability === 'full'
-                ? `${date.replaceAll('-', '.')} 기준 상품·기초자산 시계열을 사용합니다.`
+                ? `${date.replaceAll('-', '.')} 기준 상품·분석 기준주식 시계열을 사용합니다.`
                 : `${date.replaceAll('-', '.')} 기준 상품 종가를 사용합니다. 기초자산 복리분석은 현재 지원하지 않습니다.`}
             </p>
           </div>
@@ -53,7 +53,7 @@ export function DataFreshnessNotice({ analysisCapability, stale, date, mismatch 
             <Icon icon="info" size="sm" />
           </span>
           <div>
-            <strong>상품과 기초자산의 최신 날짜가 다릅니다.</strong>
+            <strong>상품과 분석 기준주식의 최신 날짜가 다릅니다.</strong>
             <p>두 시계열이 모두 존재하는 최신 공통 거래일까지만 복리 분석합니다.</p>
           </div>
         </div>

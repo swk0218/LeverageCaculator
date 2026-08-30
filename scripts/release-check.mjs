@@ -2,6 +2,7 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { extname, join, relative, resolve } from 'node:path';
 import process from 'node:process';
+import { pathToFileURL } from 'node:url';
 import { parse as parseJsoncText, printParseErrorCode } from 'jsonc-parser';
 
 const root = process.cwd();
@@ -15,6 +16,64 @@ const pagesStaticRelease = releaseTarget === 'pages-static';
 const failures = [];
 const externalBlockers = [];
 const passes = [];
+
+const samsungSpotExpectation = Object.freeze({
+  underlyingId: '005930',
+  analysisBasis: 'underlying-stock',
+  baseIndexName: 'KRX 삼성전자 지수(PR)',
+  baseIndexType: 'price-return-index',
+});
+const samsungFuturesExpectation = Object.freeze({
+  underlyingId: '005930',
+  analysisBasis: 'reference-stock-proxy',
+  baseIndexName: 'KRX 삼성전자 선물 지수',
+  baseIndexType: 'futures-index',
+});
+const samsungTrExpectation = Object.freeze({
+  underlyingId: '005930',
+  analysisBasis: 'reference-stock-proxy',
+  baseIndexName: 'KRX 삼성전자 TR 지수',
+  baseIndexType: 'total-return-index',
+});
+const hynixSpotExpectation = Object.freeze({
+  underlyingId: '000660',
+  analysisBasis: 'underlying-stock',
+  baseIndexName: 'KRX SK하이닉스 지수(PR)',
+  baseIndexType: 'price-return-index',
+});
+const hynixFuturesExpectation = Object.freeze({
+  underlyingId: '000660',
+  analysisBasis: 'reference-stock-proxy',
+  baseIndexName: 'KRX SK하이닉스 선물 지수',
+  baseIndexType: 'futures-index',
+});
+const hynixTrExpectation = Object.freeze({
+  underlyingId: '000660',
+  analysisBasis: 'reference-stock-proxy',
+  baseIndexName: 'KRX SK하이닉스 TR 지수',
+  baseIndexType: 'total-return-index',
+});
+
+export const PAGES_STATIC_PRODUCT_EXPECTATIONS = Object.freeze({
+  '0198B0': samsungFuturesExpectation,
+  '0194N0': samsungFuturesExpectation,
+  '0193W0': samsungSpotExpectation,
+  '0195R0': samsungSpotExpectation,
+  '0194M0': samsungSpotExpectation,
+  '0192M0': samsungSpotExpectation,
+  '0193K0': samsungSpotExpectation,
+  520100: samsungTrExpectation,
+  '0193L0': samsungFuturesExpectation,
+  '0194R0': hynixFuturesExpectation,
+  '0198D0': hynixFuturesExpectation,
+  '0193T0': hynixSpotExpectation,
+  '0195S0': hynixSpotExpectation,
+  '0197W0': hynixSpotExpectation,
+  '0194T0': hynixSpotExpectation,
+  '0192L0': hynixSpotExpectation,
+  520101: hynixTrExpectation,
+  '0197X0': hynixFuturesExpectation,
+});
 
 const textArtifactExtensions = new Set([
   '.css',
@@ -466,7 +525,92 @@ function checkBuildArtifacts() {
   }
 }
 
+function isIsoDate(value) {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/u.test(value)) return false;
+  const instant = new Date(`${value}T00:00:00.000Z`);
+  return !Number.isNaN(instant.valueOf()) && instant.toISOString().slice(0, 10) === value;
+}
+
+function isValidPriceSeries(series) {
+  if (!Array.isArray(series) || series.length === 0) return false;
+  let previousDate;
+  for (const point of series) {
+    if (
+      point === null ||
+      typeof point !== 'object' ||
+      !isIsoDate(point.date) ||
+      typeof point.close !== 'number' ||
+      !Number.isFinite(point.close) ||
+      point.close <= 0 ||
+      (previousDate !== undefined && point.date <= previousDate)
+    ) {
+      return false;
+    }
+    previousDate = point.date;
+  }
+  return true;
+}
+
+function samePricePoint(left, right) {
+  return (
+    left !== undefined &&
+    right !== undefined &&
+    left.date === right.date &&
+    left.close === right.close
+  );
+}
+
+export function validatePagesStaticProductExport(fileName, payload) {
+  const issues = [];
+  const fileCode = /^[0-9A-Z]{6}\.json$/u.test(fileName) ? fileName.slice(0, -5) : undefined;
+  const expected = fileCode === undefined ? undefined : PAGES_STATIC_PRODUCT_EXPECTATIONS[fileCode];
+  const product = payload?.data?.product;
+  const productSeries = payload?.data?.productSeries;
+  const underlyingSeries = payload?.data?.underlyingSeries;
+  const latest = payload?.data?.latest;
+
+  if (expected === undefined) issues.push('UNEXPECTED_PRODUCT_CODE');
+  if (payload?.meta?.mode !== 'live' || payload?.data?.source !== 'static-export') {
+    issues.push('NON_LIVE_STATIC_SOURCE');
+  }
+  if (
+    product?.code !== fileCode ||
+    product?.analysisCapability !== 'full' ||
+    product?.underlyingId !== expected?.underlyingId ||
+    product?.underlyingType !== 'stock' ||
+    product?.analysisBasis !== expected?.analysisBasis ||
+    product?.baseIndexName !== expected?.baseIndexName ||
+    product?.baseIndexType !== expected?.baseIndexType
+  ) {
+    issues.push('PRODUCT_METADATA_MISMATCH');
+  }
+
+  const productSeriesValid = isValidPriceSeries(productSeries);
+  const underlyingSeriesValid = isValidPriceSeries(underlyingSeries);
+  if (!productSeriesValid) issues.push('PRODUCT_SERIES_INVALID');
+  if (!underlyingSeriesValid) issues.push('UNDERLYING_SERIES_INVALID');
+
+  if (productSeriesValid && !samePricePoint(latest?.product, productSeries.at(-1))) {
+    issues.push('LATEST_PRODUCT_MISMATCH');
+  }
+  if (underlyingSeriesValid && !samePricePoint(latest?.underlying, underlyingSeries.at(-1))) {
+    issues.push('LATEST_UNDERLYING_MISMATCH');
+  }
+  if (productSeriesValid && underlyingSeriesValid) {
+    const underlyingDates = new Set(underlyingSeries.map(({ date }) => date));
+    const latestCommonDate = productSeries
+      .map(({ date }) => date)
+      .filter((date) => underlyingDates.has(date))
+      .at(-1);
+    if (latestCommonDate === undefined) issues.push('NO_COMMON_TRADE_DATE');
+    else if (latest?.analysisDate !== latestCommonDate) issues.push('ANALYSIS_DATE_MISMATCH');
+  }
+
+  return issues;
+}
+
 function checkPagesStaticData() {
+  const failureCountBefore = failures.length;
   if (!existsSync(pagesStaticData) || !statSync(pagesStaticData).isDirectory()) {
     fail('Pages-static data directory is missing from the built artifact.');
     return;
@@ -475,11 +619,16 @@ function checkPagesStaticData() {
   const files = readdirSync(pagesStaticData)
     .filter((name) => /^[0-9A-Z]{6}\.json$/u.test(name))
     .sort();
-  if (files.length !== 18) {
+  const expectedFiles = Object.keys(PAGES_STATIC_PRODUCT_EXPECTATIONS)
+    .map((code) => `${code}.json`)
+    .sort();
+  if (
+    files.length !== expectedFiles.length ||
+    expectedFiles.some((name, index) => name !== files[index])
+  ) {
     fail(
-      `Pages-static release requires exactly 18 product exports; found ${String(files.length)}.`,
+      `Pages-static release requires the exact 18-product export set; found ${String(files.length)} recognized files.`,
     );
-    return;
   }
 
   const codes = new Set();
@@ -488,18 +637,11 @@ function checkPagesStaticData() {
     try {
       const payload = JSON.parse(readText(path));
       const code = payload?.data?.product?.code;
-      const series = payload?.data?.productSeries;
-      const latest = payload?.data?.latest?.product;
-      if (
-        payload?.meta?.mode !== 'live' ||
-        payload?.data?.source !== 'static-export' ||
-        code !== name.slice(0, -5) ||
-        !Array.isArray(series) ||
-        series.length === 0 ||
-        latest?.date !== series.at(-1)?.date ||
-        latest?.close !== series.at(-1)?.close
-      ) {
-        fail(`Pages-static product export ${name} is incomplete or internally inconsistent.`);
+      const issues = validatePagesStaticProductExport(name, payload);
+      if (issues.length > 0) {
+        fail(
+          `Pages-static product export ${name} is incomplete or internally inconsistent: ${issues.join(', ')}.`,
+        );
       }
       if (typeof code === 'string') codes.add(code);
     } catch (error) {
@@ -509,8 +651,11 @@ function checkPagesStaticData() {
 
   if (codes.size !== 18) {
     fail(`Pages-static product exports must contain 18 unique product codes; found ${codes.size}.`);
-  } else if (!failures.some((message) => message.includes('Pages-static product export'))) {
-    pass('All 18 Pages-static official product exports are present and internally consistent.');
+  }
+  if (failures.length === failureCountBefore) {
+    pass(
+      'All 18 Pages-static product and underlying series are present, mapped, and internally consistent.',
+    );
   }
 }
 
@@ -781,42 +926,49 @@ function checkPagesWorkflow() {
   }
 }
 
-console.log('Yangbok Eumbok production release check');
-checkReleaseEnvironment();
-checkAdConsentConfiguration();
-checkPreviewIndexingGate();
-checkPolicySources();
-checkTodoAndFixme();
-checkPagesWorkflow();
-if (pagesStaticRelease) pass('Worker/D1 release gates are not applicable to Pages-static.');
-else checkMigrations();
-checkTrackedSecretFiles();
-runProductionBuild();
-checkBuildArtifacts();
+function runReleaseCheck() {
+  console.log('Yangbok Eumbok production release check');
+  checkReleaseEnvironment();
+  checkAdConsentConfiguration();
+  checkPreviewIndexingGate();
+  checkPolicySources();
+  checkTodoAndFixme();
+  checkPagesWorkflow();
+  if (pagesStaticRelease) pass('Worker/D1 release gates are not applicable to Pages-static.');
+  else checkMigrations();
+  checkTrackedSecretFiles();
+  runProductionBuild();
+  checkBuildArtifacts();
 
-console.log('\nLocal release gates');
-for (const message of passes) console.log(`[PASS] ${message}`);
-for (const message of failures) console.error(`[FAIL] ${message}`);
+  console.log('\nLocal release gates');
+  for (const message of passes) console.log(`[PASS] ${message}`);
+  for (const message of failures) console.error(`[FAIL] ${message}`);
 
-console.log('\nExternal deployment prerequisites');
-if (externalBlockers.length === 0)
-  console.log('[PASS] No unverified external prerequisites remain.');
-else for (const message of externalBlockers) console.warn(`[BLOCKED] ${message}`);
+  console.log('\nExternal deployment prerequisites');
+  if (externalBlockers.length === 0)
+    console.log('[PASS] No unverified external prerequisites remain.');
+  else for (const message of externalBlockers) console.warn(`[BLOCKED] ${message}`);
 
-if (failures.length > 0) {
-  console.error(`\nRESULT: FAIL (${failures.length} local release gate(s) failed).`);
-  console.error('Deployment was not attempted and must not be reported as complete.');
-  process.exitCode = 1;
-} else if (externalBlockers.length > 0) {
-  console.warn(
-    `\nRESULT: LOCAL PASS / EXTERNAL BLOCKED (${externalBlockers.length} prerequisite(s) remain).`,
-  );
-  console.warn(
-    'The command passed all local release gates. Deployment was not attempted and must not be reported as complete.',
-  );
-  process.exitCode = 2;
-} else {
-  console.log(
-    '\nRESULT: PASS. Production artifacts and deployment prerequisites are ready for deployment.',
-  );
+  if (failures.length > 0) {
+    console.error(`\nRESULT: FAIL (${failures.length} local release gate(s) failed).`);
+    console.error('Deployment was not attempted and must not be reported as complete.');
+    process.exitCode = 1;
+  } else if (externalBlockers.length > 0) {
+    console.warn(
+      `\nRESULT: LOCAL PASS / EXTERNAL BLOCKED (${externalBlockers.length} prerequisite(s) remain).`,
+    );
+    console.warn(
+      'The command passed all local release gates. Deployment was not attempted and must not be reported as complete.',
+    );
+    process.exitCode = 2;
+  } else {
+    console.log(
+      '\nRESULT: PASS. Production artifacts and deployment prerequisites are ready for deployment.',
+    );
+  }
 }
+
+const entryPoint = process.argv[1];
+const isMain =
+  entryPoint !== undefined && pathToFileURL(resolve(entryPoint)).href === import.meta.url;
+if (isMain) runReleaseCheck();
