@@ -20,6 +20,11 @@ import {
 
 export const DEFAULT_PAGES_DATA_OUTPUT_DIR = 'apps/web/public/data/analysis';
 export const EXPECTED_ACTIVE_PRODUCT_COUNT = 18;
+export const PAGES_UPSTREAM_POLICY = Object.freeze({
+  timeoutMs: 20_000,
+  maxRetries: 2,
+  retryBaseDelayMs: 1_000,
+});
 
 type AnalysisDataResponse = ReturnType<typeof AnalysisDataResponseSchema.parse>;
 
@@ -40,6 +45,7 @@ interface RunPagesDataExportOptions {
   env?: ExportEnvironment;
   now?: Date;
   providerFactory?: (serviceKey: string) => MarketDataProvider;
+  onProgress?: (progress: { current: number; total: number; productCode: string }) => void;
 }
 
 interface ExportSummary {
@@ -388,13 +394,19 @@ export async function runPagesDataExport(
   }
 
   const provider =
-    options.providerFactory?.(serviceKey) ?? new LiveFscMarketDataProvider({ serviceKey });
+    options.providerFactory?.(serviceKey) ??
+    new LiveFscMarketDataProvider({ serviceKey, ...PAGES_UPSTREAM_POLICY });
   if (provider.mode !== 'live') throw new StaticDataExportError('LIVE_PROVIDER_REQUIRED');
 
   const generatedAt = options.now ?? new Date();
   const to = latestEligibleCloseDate(generatedAt);
   const responses: AnalysisDataResponse[] = [];
-  for (const product of products) {
+  for (const [index, product] of products.entries()) {
+    options.onProgress?.({
+      current: index + 1,
+      total: products.length,
+      productCode: product.code,
+    });
     const providerData = await provider.fetchProductData(product, {
       from: product.listedDate,
       to,
@@ -440,6 +452,9 @@ if (isMain) {
     const summary = await runPagesDataExport({
       ...(outputDir === undefined ? {} : { outputDir }),
       env: process.env,
+      onProgress: ({ current, total, productCode }) => {
+        console.log(`Fetching official market data ${current}/${total}: ${productCode}`);
+      },
     });
     console.log(`Generated ${summary.productCount} validated static market-data files.`);
   } catch (error) {

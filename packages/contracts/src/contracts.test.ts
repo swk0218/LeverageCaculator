@@ -24,6 +24,12 @@ import {
 
 const RETRYABLE_FSC_ENVELOPE = {
   response: {
+    header: { resultCode: '23', resultMsg: 'SERVICE REQUESTS EXCEEDS ERROR.' },
+  },
+} as const;
+
+const DAILY_QUOTA_FSC_ENVELOPE = {
+  response: {
     header: { resultCode: '22', resultMsg: 'LIMITED NUMBER OF SERVICE REQUESTS EXCEEDS ERROR.' },
   },
 } as const;
@@ -441,6 +447,52 @@ describe('providers', () => {
     expect(sleep).toHaveBeenCalledExactlyOnceWith(100);
   });
 
+  it('does not retry a daily-quota FSC envelope', async () => {
+    const fetchMock = vi.fn(() =>
+      Promise.resolve(new Response(JSON.stringify(DAILY_QUOTA_FSC_ENVELOPE), { status: 200 })),
+    );
+    const sleep = vi.fn(() => Promise.resolve());
+    const provider = new LiveFscMarketDataProvider({
+      serviceKey: 'secret-value',
+      fetch: fetchMock,
+      maxRetries: 2,
+      sleep,
+    });
+
+    await expect(
+      provider.fetchProductData(toProduct(PRODUCT_MASTER[0]!), {
+        from: '2026-08-24',
+        to: '2026-08-25',
+      }),
+    ).rejects.toMatchObject({ code: '22', retryable: false });
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(sleep).not.toHaveBeenCalled();
+  });
+
+  it('fails closed when pagination reports remaining rows without returning an item', async () => {
+    const stalledPage = {
+      response: {
+        header: { resultCode: '00', resultMsg: 'NORMAL SERVICE.' },
+        body: { numOfRows: 1, pageNo: 1, totalCount: 1, items: { item: [] } },
+      },
+    };
+    const fetchMock = vi.fn(() =>
+      Promise.resolve(new Response(JSON.stringify(stalledPage), { status: 200 })),
+    );
+    const provider = new LiveFscMarketDataProvider({
+      serviceKey: 'secret-value',
+      fetch: fetchMock,
+    });
+
+    await expect(
+      provider.fetchProductData(toProduct(PRODUCT_MASTER[0]!), {
+        from: '2026-08-24',
+        to: '2026-08-25',
+      }),
+    ).rejects.toMatchObject({ code: 'PAGINATION_STALLED', retryable: false });
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
   it('stops after the bounded retries for a persistent retryable FSC envelope', async () => {
     const fetchMock = vi.fn(() =>
       Promise.resolve(new Response(JSON.stringify(RETRYABLE_FSC_ENVELOPE), { status: 200 })),
@@ -458,10 +510,34 @@ describe('providers', () => {
         from: '2026-08-24',
         to: '2026-08-25',
       }),
-    ).rejects.toMatchObject({ code: '22', retryable: true });
+    ).rejects.toMatchObject({ code: '23', retryable: true });
     expect(fetchMock).toHaveBeenCalledTimes(3);
     expect(sleep).toHaveBeenNthCalledWith(1, 100);
     expect(sleep).toHaveBeenNthCalledWith(2, 200);
+  });
+
+  it('allows a batch caller to widen the bounded exponential retry delay', async () => {
+    const fetchMock = vi.fn(() =>
+      Promise.resolve(new Response(JSON.stringify(RETRYABLE_FSC_ENVELOPE), { status: 200 })),
+    );
+    const sleep = vi.fn(() => Promise.resolve());
+    const provider = new LiveFscMarketDataProvider({
+      serviceKey: 'secret-value',
+      fetch: fetchMock,
+      maxRetries: 2,
+      retryBaseDelayMs: 1_000,
+      sleep,
+    });
+
+    await expect(
+      provider.fetchProductData(toProduct(PRODUCT_MASTER[0]!), {
+        from: '2026-08-24',
+        to: '2026-08-25',
+      }),
+    ).rejects.toMatchObject({ code: '23', retryable: true });
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(sleep).toHaveBeenNthCalledWith(1, 1_000);
+    expect(sleep).toHaveBeenNthCalledWith(2, 2_000);
   });
 
   it('aborts an upstream request at the configured timeout', async () => {

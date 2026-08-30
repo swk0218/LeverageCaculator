@@ -15,6 +15,7 @@ import {
   type ProviderProductData,
 } from '../packages/contracts/src/index';
 import {
+  PAGES_UPSTREAM_POLICY,
   StaticDataExportError,
   assertArtifactIsSanitized,
   buildStaticAnalysisResponse,
@@ -77,6 +78,14 @@ function mockLiveProvider(
 }
 
 describe('GitHub Pages market-data export', () => {
+  it('uses a batch-safe upstream timeout without changing the Worker request policy', () => {
+    expect(PAGES_UPSTREAM_POLICY).toEqual({
+      timeoutMs: 20_000,
+      maxRetries: 2,
+      retryBaseDelayMs: 1_000,
+    });
+  });
+
   it('uses KST dates without treating the generation instant as a trade date', () => {
     const generatedAt = new Date('2026-08-30T15:30:00.000Z');
     const product = toProduct(PRODUCT_MASTER[0]!);
@@ -131,11 +140,13 @@ describe('GitHub Pages market-data export', () => {
 
     const calls: Array<{ product: Product; range: DataRange }> = [];
     const factory = vi.fn(() => mockLiveProvider(calls));
+    const onProgress = vi.fn();
     const summary = await runPagesDataExport({
       outputDir,
       env: { DATA_GO_KR_SERVICE_KEY: VALID_SERVICE_KEY },
       now: new Date('2026-08-30T06:40:00.000Z'),
       providerFactory: factory,
+      onProgress,
     });
 
     const expectedCodes = PRODUCT_MASTER.filter(({ active }) => active)
@@ -145,6 +156,12 @@ describe('GitHub Pages market-data export', () => {
     expect(summary).toEqual({ outputDir: resolve(outputDir), productCount: 18 });
     expect(files).toEqual(expectedCodes.map((code) => `${code}.json`));
     expect(factory).toHaveBeenCalledWith(VALID_SERVICE_KEY);
+    expect(onProgress).toHaveBeenCalledTimes(18);
+    expect(onProgress).toHaveBeenNthCalledWith(1, {
+      current: 1,
+      total: 18,
+      productCode: PRODUCT_MASTER[0]!.code,
+    });
     expect(calls).toHaveLength(18);
     expect(calls.map(({ product }) => product.code).sort()).toEqual(expectedCodes);
     for (const { product, range } of calls) {
