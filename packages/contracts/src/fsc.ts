@@ -190,7 +190,7 @@ export function parseFscPage<T>(raw: unknown, itemSchema: z.ZodType<T>): FscPage
 }
 
 function isRetryableResultCode(code: string): boolean {
-  return code === '01' || code === '04' || code === '05' || code === '22' || code === '23';
+  return code === '01' || code === '04' || code === '05' || code === '23';
 }
 
 function fromUpstreamDate(value: string): string {
@@ -253,6 +253,7 @@ export interface LiveFscProviderOptions {
   fetch?: FetchLike;
   timeoutMs?: number;
   maxRetries?: number;
+  retryBaseDelayMs?: number;
   pageSize?: number;
   sleep?: (milliseconds: number) => Promise<void>;
 }
@@ -275,6 +276,7 @@ export class LiveFscMarketDataProvider implements MarketDataProvider {
   private readonly fetchImpl: FetchLike;
   private readonly timeoutMs: number;
   private readonly maxRetries: number;
+  private readonly retryBaseDelayMs: number;
   private readonly pageSize: number;
   private readonly sleep: (milliseconds: number) => Promise<void>;
 
@@ -283,6 +285,7 @@ export class LiveFscMarketDataProvider implements MarketDataProvider {
     this.fetchImpl = options.fetch ?? fetch;
     this.timeoutMs = options.timeoutMs ?? 5_000;
     this.maxRetries = options.maxRetries ?? 2;
+    this.retryBaseDelayMs = options.retryBaseDelayMs ?? 100;
     this.pageSize = options.pageSize ?? 1_000;
     this.sleep =
       options.sleep ??
@@ -399,6 +402,13 @@ export class LiveFscMarketDataProvider implements MarketDataProvider {
       const page = await this.fetchPage(url, schema);
       items.push(...page.items);
       totalCount = page.totalCount;
+      if (page.items.length === 0 && items.length < totalCount) {
+        throw new FscProviderError(
+          'PAGINATION_STALLED',
+          '공식 데이터 페이지가 더 이상 진행되지 않습니다.',
+          false,
+        );
+      }
       pageNo += 1;
     } while (items.length < totalCount && pageNo <= 100);
 
@@ -463,7 +473,7 @@ export class LiveFscMarketDataProvider implements MarketDataProvider {
       } finally {
         clearTimeout(timeout);
       }
-      await this.sleep(100 * 2 ** attempt);
+      await this.sleep(this.retryBaseDelayMs * 2 ** attempt);
     }
     if (lastError instanceof FscProviderError) throw lastError;
     throw new FscProviderError(
