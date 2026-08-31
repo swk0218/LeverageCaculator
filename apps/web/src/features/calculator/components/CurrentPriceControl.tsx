@@ -16,8 +16,6 @@ interface Props {
   onUseOfficial: () => void;
 }
 
-const formatDate = (date: string) => date.replaceAll('-', '.');
-
 export function CurrentPriceControl({
   officialPrice,
   officialDate,
@@ -51,8 +49,8 @@ export function CurrentPriceControl({
         </span>
         <small>
           {usingManual
-            ? `공식 종가 ${formatWon(officialPrice)} · ${formatDate(officialDate)} 참고`
-            : `${formatDate(officialDate)} 종가`}
+            ? `공식 종가 ${formatWon(officialPrice)} · ${officialDate} 참고`
+            : `${officialDate} 종가`}
         </small>
       </div>
       {isEditing ? (

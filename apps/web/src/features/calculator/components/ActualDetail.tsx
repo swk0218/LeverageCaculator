@@ -18,9 +18,7 @@ export function ActualDetail({ result, currentPriceDate, usingManualPrice }: Pro
       <details>
         <summary>
           <span id="actual-detail-heading">손익 상세</span>
-          <small>
-            {usingManualPrice ? '직접 입력가' : `${currentPriceDate.replaceAll('-', '.')} 종가`}
-          </small>
+          <small>{usingManualPrice ? '직접 입력가' : `${currentPriceDate} 종가`}</small>
         </summary>
         <dl>
           <div>

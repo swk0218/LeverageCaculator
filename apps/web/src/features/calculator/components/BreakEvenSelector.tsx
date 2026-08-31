@@ -29,7 +29,7 @@ export function BreakEvenSelector({
   const direction = (scenario.cumulativeUnderlyingReturn ?? 0) >= 0 ? '상승' : '하락';
   const formatUnderlyingLevel = product.underlyingType === 'stock' ? formatWon : formatIndexPoints;
   const targetLabel = `본전까지 필요한 ${product.underlyingName} 가격`;
-  const analysisDateLabel = analysisDate?.replaceAll('-', '.');
+  const analysisDateLabel = analysisDate;
 
   return (
     <section className="break-even-panel" aria-labelledby="underlying-break-even-heading">
