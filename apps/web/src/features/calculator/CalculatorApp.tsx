@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { AVAILABLE_PRODUCTS } from '@calculator-product-data';
+import { AVAILABLE_PRODUCTS, getLocalProductData } from '@calculator-product-data';
 import {
   analyzePosition,
   calculatePurchaseSummary,
@@ -29,13 +29,6 @@ const PRODUCT_DATA_MODE = import.meta.env.PUBLIC_DATA_MODE === 'live' ? 'live' :
 const DEFAULT_PRODUCT_CODE =
   PRODUCT_DATA_MODE === 'fixture' ? (AVAILABLE_PRODUCTS[0]?.code ?? '') : '';
 
-const emptyDraft = (): PurchaseDraft => ({
-  id: globalThis.crypto?.randomUUID?.() ?? `purchase-${Date.now()}-${Math.random()}`,
-  date: '',
-  price: '',
-  quantity: '',
-});
-
 const parseInteger = (value: string): number => Number(value.replaceAll(',', ''));
 
 const todayInKorea = (): string => {
@@ -49,10 +42,27 @@ const todayInKorea = (): string => {
   return `${values.year}-${values.month}-${values.day}`;
 };
 
+const defaultPurchaseDate = (productCode: string): string => {
+  const localSeriesStart = getLocalProductData(productCode)?.productSeries[0]?.date;
+  if (localSeriesStart) return localSeriesStart;
+
+  const listedDate = AVAILABLE_PRODUCTS.find((product) => product.code === productCode)?.listedDate;
+  const year = listedDate?.slice(0, 4) ?? todayInKorea().slice(0, 4);
+  const preferredDate = `${year}-06-01`;
+  return listedDate && listedDate > preferredDate ? listedDate : preferredDate;
+};
+
+const emptyDraft = (productCode = ''): PurchaseDraft => ({
+  id: globalThis.crypto?.randomUUID?.() ?? `purchase-${Date.now()}-${Math.random()}`,
+  date: defaultPurchaseDate(productCode),
+  price: '',
+  quantity: '',
+});
+
 export function CalculatorApp() {
   const products = AVAILABLE_PRODUCTS;
   const [selectedCode, setSelectedCode] = useState(DEFAULT_PRODUCT_CODE);
-  const [drafts, setDrafts] = useState<PurchaseDraft[]>(() => [emptyDraft()]);
+  const [drafts, setDrafts] = useState<PurchaseDraft[]>(() => [emptyDraft(DEFAULT_PRODUCT_CODE)]);
   const [manualPrice, setManualPrice] = useState<string | null>(null);
   const [manualPriceDraft, setManualPriceDraft] = useState('');
   const [persistInputs, setPersistInputs] = useState(false);
@@ -214,7 +224,13 @@ export function CalculatorApp() {
     !isEditingPrice &&
     !summaryState.error;
   const hasPurchaseInput =
-    drafts.length > 1 || drafts.some((draft) => draft.date || draft.price || draft.quantity);
+    drafts.length > 1 ||
+    drafts.some(
+      (draft) =>
+        draft.price ||
+        draft.quantity ||
+        (draft.date && draft.date !== defaultPurchaseDate(selectedCode)),
+    );
   const hasResettableState =
     selectedCode !== DEFAULT_PRODUCT_CODE ||
     hasPurchaseInput ||
@@ -265,7 +281,7 @@ export function CalculatorApp() {
 
   const addDraft = () => {
     if (drafts.length >= 50) return;
-    const nextDraft = emptyDraft();
+    const nextDraft = emptyDraft(selectedCode);
     setDrafts((current) => [...current, nextDraft]);
     setFocusDraftId(nextDraft.id);
     setSubmitAttempted(false);
@@ -286,7 +302,7 @@ export function CalculatorApp() {
 
     setSelectedCode(code);
     setDataRetryKey(0);
-    setDrafts([emptyDraft()]);
+    setDrafts([emptyDraft(code)]);
     setFocusDraftId(null);
     setManualPrice(null);
     setManualPriceDraft('');
@@ -308,7 +324,7 @@ export function CalculatorApp() {
     skipNextSaveRef.current = true;
     clearState();
     setSelectedCode(DEFAULT_PRODUCT_CODE);
-    setDrafts([emptyDraft()]);
+    setDrafts([emptyDraft(DEFAULT_PRODUCT_CODE)]);
     setFocusDraftId(null);
     setManualPrice(null);
     setManualPriceDraft('');
@@ -513,7 +529,7 @@ export function CalculatorApp() {
                   if (!checked) clearState();
                   setStatusMessage(
                     checked
-                      ? '입력을 이 기기에 30일간 저장합니다.'
+                      ? '매수내역을 이 기기에 30일간 저장합니다.'
                       : '저장을 끄고 이 기기의 저장값을 삭제했습니다.',
                   );
                 }}

@@ -126,7 +126,9 @@ export function ProductSearch({ products, selectedCode, inputRef, onSelect }: Pr
                   <span>{product.code}</span>
                 </span>
                 <span className="product-tags">
-                  <span>
+                  <span
+                    className={`leverage-tag ${product.leverage < 0 ? 'negative' : 'positive'}`}
+                  >
                     {product.leverage > 0 ? `+${product.leverage}X` : `${product.leverage}X`}
                   </span>
                   <span>{product.underlyingName}</span>

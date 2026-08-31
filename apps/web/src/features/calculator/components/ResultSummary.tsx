@@ -11,6 +11,7 @@ const tone = (value: number | undefined) => {
 
 export function ResultSummary({ result }: Props) {
   const breakEvenDone = result.productBreakEvenReturn <= 0;
+  const breakEvenClass = breakEvenDone ? '' : `condition ${tone(result.productBreakEvenReturn)}`;
 
   return (
     <dl className="result-summary">
@@ -26,7 +27,7 @@ export function ResultSummary({ result }: Props) {
       <div className="result-metric">
         <dt>상품 본전까지</dt>
         <dd>
-          <span className={`primary-number ${breakEvenDone ? '' : 'condition'}`}>
+          <span className={`primary-number ${breakEvenClass}`}>
             {breakEvenDone ? '본전 이상' : formatPercent(result.productBreakEvenReturn)}
           </span>
         </dd>

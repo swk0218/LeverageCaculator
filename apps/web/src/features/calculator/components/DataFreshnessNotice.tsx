@@ -17,11 +17,8 @@ export function DataFreshnessNotice({ stale, date, mismatch = false }: Props) {
         </div>
       )}
       {stale ? (
-        <div className="data-notice stale-notice" role="status">
-          <span aria-hidden="true">
-            <Icon icon="warning" size="sm" />
-          </span>
-          <strong>{date.replaceAll('-', '.')} 종가 · 업데이트 지연</strong>
+        <div className="data-notice date-notice" role="status">
+          <strong>{date} 종가 기준</strong>
         </div>
       ) : mismatch ? (
         <div className="data-notice" role="status">

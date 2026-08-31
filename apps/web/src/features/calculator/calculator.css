@@ -202,6 +202,18 @@
   white-space: nowrap;
 }
 
+.product-tags .leverage-tag.positive {
+  border-color: color-mix(in srgb, var(--yb-positive) 28%, var(--yb-border));
+  background: var(--yb-positive-soft);
+  color: var(--yb-positive);
+}
+
+.product-tags .leverage-tag.negative {
+  border-color: color-mix(in srgb, var(--yb-negative) 28%, var(--yb-border));
+  background: var(--yb-negative-soft);
+  color: var(--yb-negative);
+}
+
 .product-underlying {
   color: var(--yb-muted);
   font-size: 13px;
@@ -320,9 +332,9 @@
 }
 
 .remove-row:hover {
-  border-color: color-mix(in srgb, var(--yb-negative) 35%, var(--yb-border));
-  background: var(--yb-negative-soft);
-  color: var(--yb-negative);
+  border-color: color-mix(in srgb, var(--yb-danger) 35%, var(--yb-border));
+  background: var(--yb-danger-soft);
+  color: var(--yb-danger);
 }
 
 .unit-input {
@@ -346,14 +358,14 @@
 }
 
 .field-error input {
-  border-color: var(--yb-negative);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--yb-negative) 14%, transparent);
+  border-color: var(--yb-danger);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--yb-danger) 14%, transparent);
 }
 
 .field-message {
   display: block;
   margin-top: 6px;
-  color: var(--yb-negative);
+  color: var(--yb-danger);
   font-size: 13px;
   font-weight: 700;
 }
@@ -367,10 +379,10 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  border: 1px solid var(--yb-border-strong);
+  border: 1px solid var(--yb-border);
   border-radius: var(--yb-radius-element);
-  background: rgba(255, 255, 255, 0.94);
-  color: var(--yb-ink);
+  background: var(--yb-neutral-soft);
+  color: var(--yb-neutral-strong);
   font-size: 13px;
   font-weight: 750;
   cursor: pointer;
@@ -383,14 +395,13 @@
 .reset-button:hover {
   border-color: transparent;
   background: transparent;
-  color: var(--yb-accent-strong);
+  color: var(--yb-neutral-strong);
 }
 
 .add-purchase:hover,
-.outline-button:hover,
-.reset-button:hover {
-  border-color: var(--yb-accent);
-  background: var(--yb-accent-soft);
+.outline-button:hover {
+  border-color: var(--yb-neutral);
+  background: color-mix(in srgb, var(--yb-neutral-soft) 78%, var(--yb-neutral) 22%);
 }
 
 .add-purchase {
@@ -425,9 +436,9 @@
 .summary-error {
   padding: 12px 18px;
   margin: 0;
-  border-bottom: 1px solid color-mix(in srgb, var(--yb-negative) 28%, var(--yb-border));
-  background: var(--yb-negative-soft);
-  color: var(--yb-negative);
+  border-bottom: 1px solid color-mix(in srgb, var(--yb-danger) 28%, var(--yb-border));
+  background: var(--yb-danger-soft);
+  color: var(--yb-danger);
   font-size: 13px;
   font-weight: 700;
 }
@@ -487,8 +498,9 @@
 
 .price-source {
   vertical-align: 5px;
-  background: var(--yb-positive-soft);
-  color: var(--yb-positive);
+  border-color: color-mix(in srgb, var(--yb-info) 28%, var(--yb-border));
+  background: var(--yb-info-soft);
+  color: var(--yb-info);
 }
 
 .price-source.manual {
@@ -640,21 +652,21 @@
 }
 
 .live-notice {
-  background: var(--yb-positive-soft);
+  background: var(--yb-info-soft);
 }
 
 .live-notice > span {
-  border-color: color-mix(in srgb, var(--yb-positive) 32%, var(--yb-border));
-  color: var(--yb-positive);
+  border-color: color-mix(in srgb, var(--yb-info) 32%, var(--yb-border));
+  color: var(--yb-info);
 }
 
-.stale-notice {
-  background: var(--yb-negative-soft);
+.date-notice {
+  background: var(--yb-surface-soft);
+  color: var(--yb-muted);
 }
 
-.stale-notice > span {
-  border-color: color-mix(in srgb, var(--yb-negative) 32%, var(--yb-border));
-  color: var(--yb-negative);
+.date-notice strong {
+  color: var(--yb-muted);
 }
 
 .calculator-actions {
@@ -797,16 +809,26 @@
   overflow-wrap: anywhere;
 }
 
-.primary-number.positive {
+.primary-number.condition {
+  color: var(--yb-accent-strong);
+}
+
+.primary-number.positive,
+.compound-summary strong.positive {
   color: var(--yb-positive);
 }
 
-.primary-number.negative {
+.primary-number.negative,
+.compound-summary strong.negative {
   color: var(--yb-negative);
 }
 
-.primary-number.condition {
-  color: var(--yb-accent-strong);
+.primary-number.condition.positive {
+  color: var(--yb-positive);
+}
+
+.primary-number.condition.negative {
+  color: var(--yb-negative);
 }
 
 .result-metric small {
@@ -1060,14 +1082,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-.compound-summary strong.positive {
-  color: var(--yb-positive);
-}
-
-.compound-summary strong.negative {
-  color: var(--yb-negative);
-}
-
 .compound-summary p {
   margin: 0;
   color: var(--yb-ink);
@@ -1172,15 +1186,15 @@
 
 .error-state {
   padding: 28px;
-  border: 1px solid color-mix(in srgb, var(--yb-negative) 32%, var(--yb-border));
+  border: 1px solid color-mix(in srgb, var(--yb-danger) 32%, var(--yb-border));
   border-radius: var(--yb-radius-panel);
-  background: var(--yb-negative-soft);
+  background: var(--yb-danger-soft);
   color: var(--yb-ink);
 }
 
 .error-state h2 {
   margin: 0 0 8px;
-  color: var(--yb-negative);
+  color: var(--yb-danger);
   font-size: 20px;
 }
 

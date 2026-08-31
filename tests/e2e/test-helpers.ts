@@ -50,7 +50,7 @@ export async function selectProduct(page: Page, code: string): Promise<void> {
   await expect(option).toHaveCount(1);
   const hasPositionInput = await page
     .getByRole('group', { name: /^매수 \d+$/ })
-    .locator('input')
+    .locator('input:not([type="date"])')
     .evaluateAll((inputs) => inputs.some((input) => (input as HTMLInputElement).value !== ''));
   if (hasPositionInput) page.once('dialog', (dialog) => dialog.accept());
   await option.click();

@@ -92,7 +92,7 @@ test.describe('calculator fixture flow', () => {
     page.once('dialog', (dialog) => dialog.accept());
     await page.getByRole('button', { name: '전체 지우기' }).click();
     await expect(page.getByRole('group', { name: /^매수 \d+$/ })).toHaveCount(1);
-    await expect(purchaseRow(page, 1).getByLabel('매수일')).toHaveValue('');
+    await expect(purchaseRow(page, 1).getByLabel('매수일')).toHaveValue('2026-08-17');
     await expect(purchaseRow(page, 1).getByLabel('매수가')).toHaveValue('');
     await expect(purchaseRow(page, 1).getByLabel('수량')).toHaveValue('');
     await expect(resultRegion(page)).toHaveCount(0);
@@ -140,7 +140,7 @@ test.describe('calculator fixture flow', () => {
     await fillPurchase(page, 1, purchases.first);
     await calculate(page);
     await expect(
-      page.getByRole('status').filter({ hasText: '종가 · 업데이트 지연' }),
+      page.getByRole('status').filter({ hasText: '2026-08-20 종가 기준' }),
     ).toBeVisible();
 
     await selectProduct(page, fixtureProducts.actualOnly);
@@ -220,7 +220,7 @@ test.describe('calculator fixture flow', () => {
     page.once('dialog', (dialog) => dialog.accept());
     await option.click();
     await expect(page.getByRole('region', { name: '상품' })).toContainText(fixtureProducts.inverse);
-    await expect(purchaseRow(page, 1).getByLabel('매수일')).toHaveValue('');
+    await expect(purchaseRow(page, 1).getByLabel('매수일')).toHaveValue('2026-08-17');
     await expect(purchaseRow(page, 1).getByLabel('매수가')).toHaveValue('');
     await expect(purchaseRow(page, 1).getByLabel('수량')).toHaveValue('');
   });
@@ -230,8 +230,8 @@ test.describe('calculator fixture flow', () => {
   }) => {
     const calculateButton = page.getByRole('button', { name: '본전 계산하기' });
     await calculateButton.click();
-    await expect(purchaseRow(page, 1).getByLabel('매수일')).toBeFocused();
-    await expect(purchaseRow(page, 1).getByText('매수일을 입력해 주세요.')).toBeVisible();
+    await expect(purchaseRow(page, 1).getByLabel('매수가')).toBeFocused();
+    await expect(purchaseRow(page, 1).getByText('매수가를 입력해 주세요.')).toBeVisible();
 
     await fillPurchase(page, 1, purchases.first);
     await purchaseRow(page, 1).getByLabel('수량').press('Enter');
@@ -266,7 +266,7 @@ test.describe('calculator fixture flow', () => {
     await expect(page.getByRole('button', { name: '매수 1 삭제' })).toHaveCount(0);
     page.once('dialog', (dialog) => dialog.accept());
     await page.getByRole('button', { name: '전체 지우기' }).click();
-    await expect(purchaseRow(page, 1).getByLabel('매수일')).toHaveValue('');
+    await expect(purchaseRow(page, 1).getByLabel('매수일')).toHaveValue('2026-08-17');
     await expect(purchaseRow(page, 1).getByLabel('매수가')).toHaveValue('');
     await expect(purchaseRow(page, 1).getByLabel('수량')).toHaveValue('');
   });
