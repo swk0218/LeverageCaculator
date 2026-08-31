@@ -26,11 +26,13 @@ export const purchases = {
 export async function gotoCalculator(page: Page): Promise<void> {
   await page.goto('/');
   await expect(page).toHaveTitle(/양복음복/);
-  await expect(page.getByRole('heading', { level: 1, name: '레버리지 복리 계산기' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { level: 1, name: '본전까지 얼마나 남았을까요?' }),
+  ).toBeVisible();
   await expect(page.getByTestId('calculator-root')).toHaveAttribute('data-hydrated', 'true', {
     timeout: 15_000,
   });
-  await expect(page.getByRole('status').filter({ hasText: '체험용 데이터 사용 중' })).toBeVisible();
+  await expect(page.getByRole('status').filter({ hasText: '체험용 데이터' })).toBeVisible();
 }
 
 export function purchaseRow(page: Page, oneBasedIndex: number): Locator {
@@ -84,6 +86,14 @@ export function resultRegion(page: Page): Locator {
   return page.getByRole('region', { name: '계산 결과' });
 }
 
+export function targetRegion(page: Page): Locator {
+  return resultRegion(page).getByRole('region', { name: /본전까지 필요한/ });
+}
+
+export function targetPriceLiveRegion(page: Page): Locator {
+  return targetRegion(page).locator('[aria-live="polite"][aria-atomic="true"]');
+}
+
 export function resultMetric(page: Page, label: string): Locator {
   const result = resultRegion(page);
   return result
@@ -95,7 +105,7 @@ export function resultMetric(page: Page, label: string): Locator {
 }
 
 export async function calculate(page: Page): Promise<Locator> {
-  const button = page.getByRole('button', { name: '계산하기' });
+  const button = page.getByRole('button', { name: '본전 계산하기' });
   await expect(button).toBeEnabled();
   await button.click();
   const result = resultRegion(page);

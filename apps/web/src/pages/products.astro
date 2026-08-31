@@ -12,53 +12,52 @@ const typeLabel = {
 };
 
 const baseIndexTypeLabel = {
-  'price-return-index': '현물 PR 원지수',
-  'futures-index': '선물 원지수',
-  'total-return-index': 'TR 원지수',
+  'price-return-index': '현물 가격지수(PR)',
+  'futures-index': '선물지수',
+  'total-return-index': '총수익지수(TR)',
 };
 
 const analysisScopeLabel = (product: (typeof PRODUCT_MASTER)[number]) =>
   product.analysisCapability !== 'full'
-    ? '실제 손익만'
+    ? '상품 손익만'
     : product.analysisBasis === 'reference-stock-proxy'
-      ? '본주 환산 분석'
-      : '본주 기준 분석';
+      ? '본주 환산 참고'
+      : '본주 기준';
 
 const productGroups = [
   {
-    label: '삼성전자 기반 상품',
+    label: '삼성전자 상품',
     products: PRODUCT_MASTER.filter((product) => product.name.includes('삼성전자')),
   },
   {
-    label: 'SK하이닉스 기반 상품',
+    label: 'SK하이닉스 상품',
     products: PRODUCT_MASTER.filter((product) => product.name.includes('SK하이닉스')),
   },
 ];
 ---
 
 <ContentLayout
-  title="지원 상품과 데이터 기준"
+  title="지원 상품"
   description="양복음복이 확인한 국내 상장 단일종목 레버리지·인버스 ETF/ETN과 공식 데이터 기준을 안내합니다."
-  intro="지원하는 전 상품에서 삼성전자·SK하이닉스 본주 기준 본전 가격과 복리효과를 확인할 수 있습니다."
+  intro="삼성전자·SK하이닉스 연계 상품의 본전선과 복리효과를 계산합니다."
 >
   <p class="notice">
-    아래 상품은 공식 상품 자료로 식별한 목록입니다. 상품 종가와 삼성전자(005930)·SK하이닉스(000660)
-    종가를 함께 사용해 본전 조건과 복리효과를 계산합니다. 선물형과 TR형 ETN은 현물 본주와 정확히
-    같지 않으므로 ‘본주 환산 참고’로 구분합니다.
+    공식 상품 자료로 확인한 목록이며 상품 종가와 삼성전자(005930)·SK하이닉스(000660) 종가를 함께
+    사용합니다. 선물 ETF와 TR형 ETN은 본주와 구조가 달라 ‘환산 참고’로 표시합니다.
   </p>
 
-  <h2 id="confirmed-products-heading">확인된 상품</h2>
-  <div class="content-table-wrap" tabindex="0" role="region" aria-label="확인된 상품 표">
+  <h2 id="confirmed-products-heading">지원 상품</h2>
+  <div class="content-table-wrap" tabindex="0" role="region" aria-label="지원 상품 표">
     <table>
-      <caption class="sr-only">종목코드, 상품명, 배수, 유형, 분석 기준주식, 분석 범위</caption>
+      <caption class="sr-only">종목코드, 상품명, 배수, 기준지수, 기준주식, 분석 범위</caption>
       <thead>
         <tr>
           <th scope="col">종목코드</th>
           <th scope="col">상품명</th>
           <th scope="col">배수</th>
-          <th scope="col">상품·일간 배수 산정 기준</th>
-          <th scope="col">분석 기준주식</th>
-          <th scope="col">분석 범위</th>
+          <th scope="col">상품·기준지수</th>
+          <th scope="col">기준주식</th>
+          <th scope="col">분석</th>
         </tr>
       </thead>
       <tbody>
@@ -121,20 +120,20 @@ const productGroups = [
                     </dd>
                   </div>
                   <div>
-                    <dt>일간 배수 산정 원지수</dt>
+                    <dt>기준지수</dt>
                     <dd>{product.baseIndexName ?? '상품 공식 자료 참고'}</dd>
                   </div>
                   <div>
-                    <dt>분석 기준주식</dt>
+                    <dt>기준주식</dt>
                     <dd>{product.underlyingName}</dd>
                   </div>
                   <div>
-                    <dt>분석 범위</dt>
+                    <dt>분석</dt>
                     <dd>{analysisScopeLabel(product)}</dd>
                   </div>
                 </dl>
                 <a href={product.verification.evidenceUrl} target="_blank" rel="noreferrer">
-                  공식 근거 보기 <span class="sr-only">(새 창)</span>
+                  공식 근거 <span class="sr-only">(새 창)</span>
                 </a>
               </li>
             ))}
@@ -144,28 +143,25 @@ const productGroups = [
     }
   </div>
 
-  <h2>데이터 제공 방식</h2>
+  <h2>공식 데이터</h2>
   <p>
-    양복음복은 금융위원회 공공데이터를 장 마감 후 정기적으로 확인한 뒤 검증된 읽기 전용 가격
-    정보만 브라우저에 제공합니다. 사용자가 입력한 매수일·매수가·수량은 이 과정에 전송하지
-    않습니다. 새 응답이 비어 있거나 올바르지 않으면 기존 정상 가격을 덮어쓰지 않습니다.
+    금융위원회 공공데이터에서 장 마감 후 가격을 가져와 검증한 뒤 제공합니다. 매수일·매수가·수량은
+    전송하지 않으며, 새 응답이 비어 있거나 잘못되면 기존 정상 가격을 유지합니다.
   </p>
 
-  <h2>가격 기준일과 지연 표시</h2>
+  <h2>기준일과 지연</h2>
   <p>
-    현재가는 최신 공식 상품 종가와 기준일을 함께 표시합니다. 상품과 분석 기준주식의 날짜가 다르면 두
-    시계열이 모두 존재하는 최신 공통 거래일까지 복리분석합니다. 평일 기준 2일 이상 오래된 데이터는
-    화면에서 지연 상태로 표시합니다.
+    현재가와 기준일을 함께 표시합니다. 상품과 본주 날짜가 다르면 최신 공통 거래일까지 분석하고,
+    평일 기준 2일 이상 지난 데이터는 ‘업데이트 지연’으로 표시합니다.
   </p>
 
   {
     isFixture && (
       <>
-        <h2>체험용 데이터</h2>
+        <h2>체험 데이터</h2>
         <p>
-          로컬 체험 모드에서는 정상 +2X·-2X, 갱신 지연, 기준일 불일치와 부분 분석 상황을
-          확인할 수 있는 예시 데이터를 사용합니다. 체험용 상품과 실제 시세를 혼동하지 않도록
-          계산기 상단에 상태를 표시합니다.
+          로컬 모드에서는 정상·지연·기준일 불일치 상태를 확인할 예시 데이터를 사용합니다. 실제 시세가
+          아니며 계산기 상단에 ‘체험 데이터’로 표시합니다.
         </p>
       </>
     )

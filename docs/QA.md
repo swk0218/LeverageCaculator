@@ -14,10 +14,10 @@ are witnessed. AdSense stays disabled.
 
 | Gate                              | Current result                                                     |
 | --------------------------------- | ------------------------------------------------------------------ |
-| `pnpm verify:quick`               | PASS: format, lint, strict TypeScript, core 30/30, contracts 37/37 |
-| Vitest suite                      | PASS: 10 files, 106/106 tests                                      |
+| `pnpm verify:quick`               | PASS: format, lint, strict TypeScript, core 30/30, contracts 38/38 |
+| Vitest suite                      | PASS: 10 files, 107/107 tests                                      |
 | Workerd + local D1 integration    | PASS: 2/2 runtime tests                                            |
-| `pnpm test:e2e`                   | PASS: 21/21 production-static Chromium scenarios                   |
+| `pnpm test:e2e`                   | PASS: 22/22 production-static Chromium scenarios                   |
 | `pnpm test:a11y`                  | PASS: 5/5; all axe WCAG violation severities: 0                    |
 | `pnpm test:visual`                | PASS: 20/20 fixture comparisons; one intentional live-only skip    |
 | Production build / Worker dry-run | PASS                                                               |
@@ -37,6 +37,12 @@ last-sync state, empty responses, and partial ingestion failure.
 
 The review used the user-requested priorities: information hierarchy, UX convenience,
 accessibility, intuitiveness, and separation of necessary from unnecessary content.
+
+The P11 follow-up used separate Product Designer, UX Writer, and accessibility reviews. The accepted
+hierarchy is `target stock price → current return/product break-even → compound effect → details`.
+Healthy-data prose and repeated proxy explanations were removed, while partial-analysis warnings,
+manual-price scope, proxy limits, and the non-predictive nature of target prices remain visible where
+they affect interpretation.
 
 ### Information hierarchy
 

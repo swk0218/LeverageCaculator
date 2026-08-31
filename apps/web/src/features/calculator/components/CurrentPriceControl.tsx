@@ -33,7 +33,6 @@ export function CurrentPriceControl({
 }: Props) {
   const inputId = useId();
   const errorId = `${inputId}-error`;
-  const helpId = `${inputId}-help`;
   const displayedManual = manualPrice ? Number(manualPrice.replaceAll(',', '')) : null;
   const usingManual =
     displayedManual !== null && Number.isSafeInteger(displayedManual) && displayedManual > 0;
@@ -41,7 +40,9 @@ export function CurrentPriceControl({
   return (
     <section className="current-price" aria-labelledby="current-price-heading">
       <div>
-        <h3 id="current-price-heading">현재가</h3>
+        <span id="current-price-heading" className="current-price-label">
+          현재가
+        </span>
         <strong className="tabular" aria-live="polite">
           {formatWon(usingManual && displayedManual !== null ? displayedManual : officialPrice)}
         </strong>
@@ -50,8 +51,8 @@ export function CurrentPriceControl({
         </span>
         <small>
           {usingManual
-            ? `현재 손익·본전 계산에 사용 · ${formatDate(officialDate)} 공식 상품 종가 시계열 유지`
-            : `${formatDate(officialDate)} 공식 종가 기준`}
+            ? `공식 종가 ${formatWon(officialPrice)} · ${formatDate(officialDate)} 참고`
+            : `${formatDate(officialDate)} 종가`}
         </small>
       </div>
       {isEditing ? (
@@ -67,7 +68,7 @@ export function CurrentPriceControl({
               required
               value={draftPrice}
               aria-invalid={Boolean(error)}
-              aria-describedby={`${helpId}${error ? ` ${errorId}` : ''}`}
+              aria-describedby={error ? errorId : undefined}
               onKeyDown={(event) => {
                 if (event.key === 'Enter') {
                   event.preventDefault();
@@ -86,9 +87,6 @@ export function CurrentPriceControl({
             />
             <span aria-hidden="true">원</span>
           </div>
-          <p id={helpId} className="manual-price-help">
-            적용하기 전까지 계산값은 바뀌지 않습니다.
-          </p>
           {error && (
             <span id={errorId} className="field-message" role="alert">
               {error}
@@ -111,11 +109,11 @@ export function CurrentPriceControl({
       ) : (
         <div className="current-price-actions">
           <button type="button" className="outline-button" onClick={onEdit}>
-            {usingManual ? '현재가 다시 입력' : '현재가 수정'}
+            {usingManual ? '가격 다시 입력' : '가격 직접 입력'}
           </button>
           {usingManual && (
             <button type="button" className="text-button" onClick={onUseOfficial}>
-              공식 종가로 되돌리기
+              종가로 복원
             </button>
           )}
         </div>

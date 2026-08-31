@@ -19,9 +19,9 @@ const structuredData = {
 <BaseLayout structuredData={structuredData}>
   <section class="intro page-shell">
     <div class="calculator-shell">
-      <h1>레버리지 복리 계산기</h1>
+      <h1>본전까지 얼마나 남았을까요?</h1>
       <p class="intro-lede">
-        상품과 매수내역을 입력해 현재 손익과 본전 조건을 확인하세요.
+        매수 내역을 입력하면 현재 손익, 본전에 필요한 주가와 복리효과를 계산합니다.
       </p>
     </div>
   </section>
@@ -34,41 +34,12 @@ const structuredData = {
     <AdSlot placement="result" />
   </div>
 
-  <section class="method-preview">
-    <div class="page-shell explainer-grid">
-      <div>
-        <h2>왜 단순히 2배가 아닐까요?</h2>
-        <p>
-          레버리지 상품은 하루 수익률의 배수를 매일 다시 적용합니다. 같은 시작점과 끝점이라도
-          오르는 순서와 내리는 순서에 따라 누적 결과가 달라질 수 있습니다.
-        </p>
-        <a class="text-link" href={withSiteBase('/method')}>계산 방식과 공식 보기</a>
-      </div>
-      <ol class="method-steps">
-        <li><span>01</span> 매수분마다 출발일을 나눕니다.</li>
-        <li><span>02</span> 기초자산의 일간 수익률을 적용합니다.</li>
-        <li><span>03</span> 단순 배수와 일일 복리의 차이를 합칩니다.</li>
-      </ol>
-    </div>
-  </section>
-
-  <section class="page-shell faq-preview">
-    <h2>자주 묻는 질문</h2>
-    <details>
-      <summary>표시된 본전 조건은 가격 예측인가요?</summary>
-      <p>
-        아닙니다. 선택한 기간 동안 기초자산이 매일 같은 비율로 움직이고 상품이 목표 배수를
-        정확히 추종한다고 가정한 조건부 이론값입니다.
-      </p>
-    </details>
-    <details>
-      <summary>현재가를 직접 바꾸면 공식 데이터도 바뀌나요?</summary>
-      <p>
-        직접 입력 가격은 현재 손익과 향후 본전 조건에만 사용합니다. 공식 시계열과 이론·실제 비교에는
-        섞지 않습니다.
-      </p>
-    </details>
-    <a class="text-link" href={withSiteBase('/faq')}>FAQ 전체 보기</a>
+  <section class="page-shell support-links" aria-label="도움말">
+    <nav>
+      <a href={withSiteBase('/method')}>계산 원리</a>
+      <span aria-hidden="true">·</span>
+      <a href={withSiteBase('/faq')}>자주 묻는 질문</a>
+    </nav>
     <AdSlot placement="content" />
   </section>
 </BaseLayout>
@@ -102,93 +73,28 @@ const structuredData = {
     padding-top: 20px;
   }
 
-  .method-preview {
-    padding: 72px 0;
-    margin-top: 80px;
-    border-block: 1px solid var(--yb-border);
-    background: var(--yb-accent-wash);
+  .support-links {
+    padding-top: 40px;
   }
 
-  .explainer-grid {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(360px, 0.9fr);
-    gap: clamp(40px, 7vw, 96px);
-    align-items: start;
-  }
-
-  h2 {
-    margin: 0 0 16px;
-    color: var(--yb-ink);
-    font-size: clamp(26px, 4vw, 38px);
-    line-height: 1.25;
-    letter-spacing: -0.04em;
-  }
-
-  .method-preview p,
-  .faq-preview p {
-    max-width: 640px;
-    margin: 0;
+  .support-links nav {
+    display: flex;
+    min-height: 56px;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    border-top: 1px solid var(--yb-border);
     color: var(--yb-muted);
   }
 
-  .text-link {
+  .support-links a {
     display: inline-flex;
     min-height: 44px;
     align-items: center;
-    margin-top: 22px;
     color: var(--yb-accent-strong);
-    font-weight: 800;
-    text-decoration-thickness: 2px;
-    text-underline-offset: 4px;
-  }
-
-  .method-steps {
-    padding: 0;
-    margin: 0;
-    list-style: none;
-  }
-
-  .method-steps li {
-    display: grid;
-    grid-template-columns: 52px 1fr;
-    gap: 16px;
-    padding: 18px 0;
-    border-top: 1px solid var(--yb-border-strong);
-    color: var(--yb-ink);
+    font-size: 14px;
     font-weight: 750;
-  }
-
-  .method-steps li:last-child {
-    border-bottom: 1px solid var(--yb-border-strong);
-  }
-
-  .method-steps span {
-    color: var(--yb-accent);
-    font-variant-numeric: tabular-nums;
-  }
-
-  .faq-preview {
-    padding: 80px 0 24px;
-  }
-
-  .faq-preview details {
-    border-top: 1px solid var(--yb-border);
-  }
-
-  .faq-preview details:last-of-type {
-    border-bottom: 1px solid var(--yb-border);
-  }
-
-  .faq-preview summary {
-    min-height: 64px;
-    padding: 18px 44px 18px 0;
-    color: var(--yb-ink);
-    font-weight: 800;
-    cursor: pointer;
-  }
-
-  .faq-preview details p {
-    padding: 0 0 24px;
+    text-underline-offset: 4px;
   }
 
   @media (max-width: 760px) {
@@ -196,13 +102,8 @@ const structuredData = {
       padding-top: 24px;
     }
 
-    .explainer-grid {
-      grid-template-columns: 1fr;
-    }
-
-    .method-preview,
-    .faq-preview {
-      padding-block: 56px;
+    .support-links {
+      padding-top: 28px;
     }
   }
 </style>

@@ -10,27 +10,8 @@ interface Props {
   onSelect: (code: string) => boolean;
 }
 
-const underlyingTypeLabel: Record<Product['underlyingType'], string> = {
-  stock: '현물 주식',
-  'spot-index': '현물 지수',
-  'futures-index': '선물 지수',
-};
-
-const baseIndexTypeLabel: Record<NonNullable<Product['baseIndexType']>, string> = {
-  'price-return-index': '현물 PR 원지수',
-  'futures-index': '선물 원지수',
-  'total-return-index': 'TR 원지수',
-};
-
 function analysisReferenceLabel(product: Product): string {
-  if (product.analysisBasis === 'reference-stock-proxy') return '본주 환산 참고';
-  return product.underlyingType === 'stock'
-    ? '본주 기준 분석'
-    : underlyingTypeLabel[product.underlyingType];
-}
-
-function analysisReferenceNoun(product: Product): string {
-  return product.underlyingType === 'stock' ? '분석 기준주식' : '기초지수';
+  return product.analysisBasis === 'reference-stock-proxy' ? '환산 참고' : '본주 기준';
 }
 
 export function ProductSearch({ products, selectedCode, inputRef, onSelect }: Props) {
@@ -62,14 +43,13 @@ export function ProductSearch({ products, selectedCode, inputRef, onSelect }: Pr
   return (
     <section className="calculator-section product-section" aria-labelledby="product-heading">
       <div className="section-heading-row">
-        <div>
-          <h2 id="product-heading">상품</h2>
-        </div>
-        <span className="section-hint">상품명 또는 종목코드</span>
+        <h2 id="product-heading">상품 선택</h2>
       </div>
 
       <div className="product-search">
-        <label htmlFor={inputId}>상품 검색 및 선택</label>
+        <label className="sr-only" htmlFor={inputId}>
+          상품 검색 및 선택
+        </label>
         <div className="search-field-wrap">
           <Icon icon="search" size="md" aria-hidden="true" />
           <input
@@ -83,7 +63,7 @@ export function ProductSearch({ products, selectedCode, inputRef, onSelect }: Pr
             aria-activedescendant={activeOption ? `${listId}-${activeOption.code}` : undefined}
             autoComplete="off"
             value={query}
-            placeholder="상품명 또는 종목코드 검색"
+            placeholder="상품명·종목코드"
             onChange={(event) => {
               setQuery(event.currentTarget.value);
               setIsOpen(true);
@@ -132,7 +112,7 @@ export function ProductSearch({ products, selectedCode, inputRef, onSelect }: Pr
                 id={`${listId}-${product.code}`}
                 type="button"
                 role="option"
-                aria-label={`${product.name}, ${product.code}, ${product.leverage > 0 ? `플러스 ${product.leverage}배` : `마이너스 ${Math.abs(product.leverage)}배`}, ${product.productType}, ${product.baseIndexType ? `일간 배수 산정 기준 ${baseIndexTypeLabel[product.baseIndexType]}` : ''}, ${analysisReferenceNoun(product)} ${product.underlyingName}, ${analysisReferenceLabel(product)}`}
+                aria-label={`${product.name}, ${product.code}, ${product.underlyingName} ${analysisReferenceLabel(product)}, ${product.leverage > 0 ? `플러스 ${product.leverage}배` : `마이너스 ${Math.abs(product.leverage)}배`}`}
                 aria-selected={product.code === selectedCode}
                 tabIndex={-1}
                 className={`product-option ${index === activeIndex ? 'active' : ''}`}
@@ -149,13 +129,10 @@ export function ProductSearch({ products, selectedCode, inputRef, onSelect }: Pr
                   <span>
                     {product.leverage > 0 ? `+${product.leverage}X` : `${product.leverage}X`}
                   </span>
-                  <span>{product.productType}</span>
-                  <span>{analysisReferenceLabel(product)}</span>
+                  <span>{product.underlyingName}</span>
                 </span>
                 <span className="product-underlying">
-                  {product.baseIndexType &&
-                    `배수 산정 ${baseIndexTypeLabel[product.baseIndexType]} · `}
-                  {analysisReferenceNoun(product)} · {product.underlyingName}
+                  {product.productType} · {analysisReferenceLabel(product)}
                 </span>
               </button>
             ))}
@@ -172,7 +149,7 @@ export function ProductSearch({ products, selectedCode, inputRef, onSelect }: Pr
       </div>
 
       {selected && (
-        <div className="selected-product" aria-live="polite">
+        <div className="selected-product">
           <span className={`leverage-mark ${selected.leverage < 0 ? 'inverse' : ''}`}>
             {selected.leverage > 0 ? `+${selected.leverage}X` : `${selected.leverage}X`}
           </span>
@@ -180,18 +157,8 @@ export function ProductSearch({ products, selectedCode, inputRef, onSelect }: Pr
             <strong>{selected.name}</strong>
             <p>
               <span className="product-code">{selected.code}</span> · {selected.productType} ·{' '}
-              {selected.baseIndexType &&
-                `배수 산정 ${baseIndexTypeLabel[selected.baseIndexType]} · `}
-              {selected.underlyingName} · {analysisReferenceLabel(selected)}
+              {selected.underlyingName} {analysisReferenceLabel(selected)}
             </p>
-          </div>
-        </div>
-      )}
-      {!selected && (
-        <div className="selected-product selected-product--empty" role="status">
-          <div>
-            <strong>계산할 상품을 선택해 주세요.</strong>
-            <p>지원 상품의 이름이나 종목코드로 검색할 수 있습니다.</p>
           </div>
         </div>
       )}

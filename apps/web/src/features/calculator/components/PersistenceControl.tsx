@@ -13,8 +13,10 @@ export function PersistenceControl({ checked, onChange }: Props) {
           onChange={(event) => onChange(event.currentTarget.checked)}
         />
         <span>
-          <strong>이 기기에 입력 저장</strong>
-          <small>선택하면 30일간 복원됩니다. 공용 기기에서는 선택하지 마세요.</small>
+          <strong>30일간 저장</strong>
+          <small className="sr-only">
+            이 기기에만 저장됩니다. 공용 기기에서는 사용하지 마세요.
+          </small>
         </span>
       </label>
     </section>

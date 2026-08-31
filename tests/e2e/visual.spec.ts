@@ -84,7 +84,7 @@ for (const viewport of stateViewports) {
   test(`profit result at ${viewport.width}px @visual`, async ({ page }) => {
     await prepareFixturePage(page, viewport);
     await fillPurchase(page, 1, purchases.first);
-    await page.getByRole('button', { name: '현재가 수정' }).click();
+    await page.getByRole('button', { name: '가격 직접 입력' }).click();
     await page.getByLabel('직접 입력할 현재가').fill('15000');
     await page.getByRole('button', { name: '현재가 적용' }).click();
     await calculate(page);
@@ -102,7 +102,7 @@ for (const viewport of stateViewports) {
   test(`manual current price at ${viewport.width}px @visual`, async ({ page }) => {
     await prepareFixturePage(page, viewport);
     await fillPurchase(page, 1, purchases.first);
-    await page.getByRole('button', { name: '현재가 수정' }).click();
+    await page.getByRole('button', { name: '가격 직접 입력' }).click();
     await page.getByLabel('직접 입력할 현재가').fill('8000');
     await page.getByRole('button', { name: '현재가 적용' }).click();
     await calculate(page);

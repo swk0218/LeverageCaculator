@@ -29,12 +29,12 @@ test('never sends financial inputs outside the browser', async ({ page }) => {
     quantity: '54321',
   };
   await fillPurchase(page, 1, privatePurchase);
-  await page.getByRole('button', { name: '현재가 수정' }).click();
+  await page.getByRole('button', { name: '가격 직접 입력' }).click();
   await page.getByLabel('직접 입력할 현재가').fill('7654321');
   await page.getByRole('button', { name: '현재가 적용' }).click();
   await calculate(page);
 
-  const actualDetail = resultRegion(page).getByRole('region', { name: '현재 손익 상세' });
+  const actualDetail = resultRegion(page).getByRole('region', { name: '손익 상세' });
   await actualDetail.locator('summary').click();
   const pnlText = await actualDetail
     .locator('dl > div')

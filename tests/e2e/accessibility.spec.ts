@@ -78,7 +78,7 @@ test.describe('keyboard and accessibility', () => {
     expect(initialViolations, formatViolations(initialViolations)).toEqual([]);
 
     await fillPurchase(page, 1, purchases.first);
-    await page.getByRole('button', { name: '계산하기' }).click();
+    await page.getByRole('button', { name: '본전 계산하기' }).click();
     await expect(resultRegion(page)).toBeVisible();
 
     const resultViolations = await axeViolations(page);
@@ -116,12 +116,10 @@ test.describe('keyboard and accessibility', () => {
     await page.keyboard.press('Tab');
     await expect(page.getByRole('button', { name: '매수내역 추가' })).toBeFocused();
     await page.keyboard.press('Tab');
-    await expect(page.getByRole('checkbox', { name: /이 기기에 입력 저장/ })).toBeFocused();
-    await page.keyboard.press('Tab');
-    await expect(page.getByRole('button', { name: '현재가 수정' })).toBeFocused();
+    await expect(page.getByRole('button', { name: '가격 직접 입력' })).toBeFocused();
     await page.keyboard.press('Tab');
 
-    const calculateButton = page.getByRole('button', { name: '계산하기' });
+    const calculateButton = page.getByRole('button', { name: '본전 계산하기' });
     await expect(calculateButton).toBeFocused();
     await expect(calculateButton).toBeEnabled();
     expect(await calculateButton.evaluate((element) => element.matches(':focus-visible'))).toBe(
@@ -131,19 +129,20 @@ test.describe('keyboard and accessibility', () => {
 
     await expect(resultRegion(page)).toBeVisible();
     await expect(resultRegion(page)).toBeFocused();
+    await expect(page.getByRole('checkbox', { name: /30일간 저장/ })).toHaveCount(1);
   });
 
   test('has no axe violations in mobile validation, partial result, and product-list states @a11y', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.getByRole('button', { name: '계산하기' }).click();
+    await page.getByRole('button', { name: '본전 계산하기' }).click();
     const validationViolations = await axeViolations(page);
     expect(validationViolations, formatViolations(validationViolations)).toEqual([]);
 
     await selectProduct(page, fixtureProducts.actualOnly);
     await fillPurchase(page, 1, purchases.first);
-    await page.getByRole('button', { name: '계산하기' }).click();
+    await page.getByRole('button', { name: '본전 계산하기' }).click();
     await expect(resultRegion(page)).toBeVisible();
     const partialResultViolations = await axeViolations(page);
     expect(partialResultViolations, formatViolations(partialResultViolations)).toEqual([]);
@@ -163,8 +162,13 @@ test.describe('keyboard and accessibility', () => {
       await page.setViewportSize(viewport);
       await selectProduct(page, fixtureProducts.inverse);
       await fillPurchase(page, 1, purchases.first);
-      await page.getByRole('button', { name: '계산하기' }).click();
-      await expect(resultRegion(page)).toContainText('본주 환산 참고');
+      await page.getByRole('button', { name: '본전 계산하기' }).click();
+      const target = resultRegion(page).getByRole('region', { name: /본전까지 필요한/ });
+      await expect(target).toContainText('본주 환산 참고');
+      const targetPrice = target.locator('[aria-live="polite"][aria-atomic="true"]');
+      await expect(targetPrice).toContainText(/약 [\d,]+원/);
+      await page.getByRole('radio', { name: '5거래일' }).check();
+      await expect(targetPrice).toContainText('5거래일');
       const violations = await axeViolations(page);
       expect(violations, formatViolations(violations)).toEqual([]);
     });

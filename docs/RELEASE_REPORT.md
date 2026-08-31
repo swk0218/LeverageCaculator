@@ -26,6 +26,9 @@
   1/5/20-day won target prices, favorable/unfavorable compounding, ten direct stock-basis mappings,
   eight disclosed stock-proxy mappings, fail-closed export/ingestion gates, and witnessed live
   deployment.
+- P11: Concise UX implementation locally complete — target-price-first result hierarchy, reduced
+  homepage and support copy, collapsed detail, clearer manual/proxy/partial states, 320px coverage,
+  and refreshed Win32 visual baselines. PR, Linux baselines, and production deployment are pending.
 
 ## Implemented
 
@@ -58,17 +61,17 @@ The browser sends public product/date identifiers only. Worker credentials and D
 ## Calculation verification
 
 - Golden/property/core tests: 30/30 PASS.
-- Contracts/provider tests: 37/37 PASS.
-- Repository Vitest suite: 10 files, 106/106 PASS.
+- Contracts/provider tests: 38/38 PASS.
+- Repository Vitest suite: 10 files, 107/107 PASS.
 - Workerd+D1 runtime tests: 2/2 PASS.
 - Missing intermediate underlying trading dates exclude affected lots and produce a partial/unavailable
   warning instead of a false full analysis.
 
 ## Browser verification
 
-- Mobile: PASS at 360×800, 390×844, and 430×932 with no horizontal page overflow.
+- Mobile: PASS at 320×720, 360×800, 390×844, and 430×932 with no horizontal page overflow.
 - Tablet/desktop: PASS at 768×1024, 1280×900, and 1440×1000.
-- E2E: 21/21 non-visual scenarios PASS against a fresh production-static build.
+- E2E: 22/22 non-visual scenarios PASS against a fresh production-static build.
 - Accessibility: 5/5 PASS; axe runs without severity filtering and reports 0 violations.
 - Visual regression: 20/20 current fixture comparisons PASS; the live-only API-error case is the one
   intentional fixture-mode skip.
