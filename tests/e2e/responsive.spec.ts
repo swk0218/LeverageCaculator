@@ -71,3 +71,24 @@ test('keeps the three-row result and advertising clear of controls at 360px', as
     }
   }
 });
+
+test('keeps the product result list visible above the following sections on mobile', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await gotoCalculator(page);
+
+  const search = page.getByRole('combobox', { name: '상품 검색 및 선택' });
+  await search.fill(fixtureProducts.full);
+  const list = page.getByRole('listbox', { name: '상품 검색 결과' });
+  await expect(list).toBeVisible();
+  await expect(page.locator('.calculator-frame')).toHaveCSS('overflow', 'visible');
+
+  const listVisibleAtMidpoint = await list.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    const x = rect.left + Math.min(24, rect.width / 2);
+    const y = rect.top + Math.min(120, rect.height - 1);
+    return document.elementFromPoint(x, y)?.closest('[role="listbox"]') === element;
+  });
+  expect(listVisibleAtMidpoint).toBe(true);
+});
