@@ -1105,6 +1105,23 @@
   font-variant-numeric: tabular-nums;
 }
 
+.compound-amount {
+  display: block;
+  margin-top: 5px;
+  color: var(--yb-muted);
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.compound-amount.positive {
+  color: var(--yb-positive);
+}
+
+.compound-amount.negative {
+  color: var(--yb-negative);
+}
+
 .compound-summary p {
   margin: 0;
   color: var(--yb-ink);

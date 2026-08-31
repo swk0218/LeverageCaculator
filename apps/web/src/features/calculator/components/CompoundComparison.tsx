@@ -62,6 +62,12 @@ export function CompoundComparison({ product, result }: Props) {
       : result.compoundEffectWon < 0
         ? `음의 복리로 ${formatPercent(Math.abs(result.compoundEffectRate), 1, false)}가 녹았습니다.`
         : '복리 차이 없음';
+  const effectAmountCopy =
+    result.compoundEffectWon > 0
+      ? `복사된 금액 ${formatWon(Math.abs(result.compoundEffectWon))}`
+      : result.compoundEffectWon < 0
+        ? `녹은 금액 ${formatWon(Math.abs(result.compoundEffectWon))}`
+        : null;
 
   return (
     <section className="comparison-panel" aria-labelledby="compound-heading">
@@ -69,6 +75,9 @@ export function CompoundComparison({ product, result }: Props) {
         <div>
           <h3 id="compound-heading">복리효과</h3>
           <strong className={effectTone}>{effectCopy}</strong>
+          {effectAmountCopy && (
+            <small className={`compound-amount ${effectTone}`}>{effectAmountCopy}</small>
+          )}
         </div>
       </div>
       {isReferenceStockProxy && <p className="proxy-note">본주 종가 기준 비교</p>}

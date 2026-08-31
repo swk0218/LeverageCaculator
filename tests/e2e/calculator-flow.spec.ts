@@ -169,6 +169,9 @@ test.describe('calculator fixture flow', () => {
     await expect(resultRegion(page).getByRole('region', { name: '복리효과' })).toContainText(
       /음의 복리.*녹았습니다/s,
     );
+    await expect(resultRegion(page).getByRole('region', { name: '복리효과' })).toContainText(
+      /녹은 금액 [\d,]+원/,
+    );
 
     for (const tradingDays of [1, 5, 20]) {
       await page.getByRole('radio', { name: `${tradingDays}거래일` }).check();
@@ -181,6 +184,9 @@ test.describe('calculator fixture flow', () => {
     await calculate(page);
     await expect(resultRegion(page).getByRole('region', { name: '복리효과' })).toContainText(
       /양의 복리.*2\.0%가 복사됐습니다/s,
+    );
+    await expect(resultRegion(page).getByRole('region', { name: '복리효과' })).toContainText(
+      /복사된 금액 [\d,]+원/,
     );
 
     await selectProduct(page, fixtureProducts.inverse);
