@@ -12,6 +12,7 @@ import {
 } from './test-helpers';
 
 const requiredViewports = [
+  { width: 320, height: 720 },
   { width: 360, height: 800 },
   { width: 390, height: 844 },
   { width: 430, height: 932 },
@@ -28,6 +29,7 @@ for (const viewport of requiredViewports) {
 
     await selectProduct(page, fixtureProducts.inverse);
     await fillPurchase(page, 1, purchases.first);
+    await expectNoHorizontalOverflow(page);
     await calculate(page);
     await expectNoHorizontalOverflow(page);
     await expect(page.getByRole('region', { name: '계산 결과' })).toContainText('본주 환산 참고');
@@ -41,7 +43,7 @@ test('keeps the three-row result and advertising clear of controls at 360px', as
   await calculate(page);
   await expectNoHorizontalOverflow(page);
 
-  for (const controlName of ['매수내역 추가', '계산하기', '입력 및 저장값 지우기']) {
+  for (const controlName of ['매수내역 추가', '본전 계산하기', '전체 지우기']) {
     const control = page.getByRole('button', { name: controlName });
     const box = await control.boundingBox();
     expect(box, `${controlName} control must be rendered`).not.toBeNull();
@@ -52,7 +54,7 @@ test('keeps the three-row result and advertising clear of controls at 360px', as
 
   const adSlots = page.getByRole('complementary', { name: '광고' });
   const actionButtons = page.getByRole('button', {
-    name: /매수내역 추가|계산하기|현재가 수정/,
+    name: /매수내역 추가|본전 계산하기|가격 직접 입력/,
   });
   for (let adIndex = 0; adIndex < (await adSlots.count()); adIndex += 1) {
     const adBox = await adSlots.nth(adIndex).boundingBox();

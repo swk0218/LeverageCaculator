@@ -28,7 +28,7 @@ export function PurchaseList({
         <div>
           <h2 id="purchase-heading">매수내역</h2>
         </div>
-        <span className="section-hint">현재 보유 중인 매수분만 입력</span>
+        <span className="section-hint">보유분만 입력</span>
       </div>
       <div className="purchase-list">
         {drafts.map((draft, index) => (

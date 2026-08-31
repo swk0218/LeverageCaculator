@@ -20,7 +20,7 @@ export function CompoundComparison({ product, result }: Props) {
   const isReferenceStockProxy = product.analysisBasis === 'reference-stock-proxy';
   const proxyDifference =
     product.baseIndexType === 'futures-index'
-      ? '선물 베이시스와 롤오버'
+      ? '선물 가격과 롤오버'
       : product.baseIndexType === 'total-return-index'
         ? '배당 재투자'
         : '추적 방식';
@@ -39,89 +39,90 @@ export function CompoundComparison({ product, result }: Props) {
         <div className="panel-heading">
           <h3 id="compound-heading">복리효과</h3>
         </div>
-        <p className="assumption-note">
-          {product.analysisCapability === 'actual-only'
-            ? '이 상품은 정확한 기초자산 시계열이 검증되지 않아 실제 손익과 상품 자체 본전 조건만 제공합니다.'
-            : '입력한 매수분 중 공식 분석일 기준으로 복리 분석 가능한 내역이 없어 실제 손익과 상품 자체 본전 조건만 제공합니다.'}
-        </p>
+        <p className="target-note">이 매수분은 복리 분석 범위에 포함되지 않습니다.</p>
       </section>
     );
   }
 
   const values: ComparisonValue[] = [
     {
-      label: `단순 기간수익률 ×${product.leverage}`,
+      label: `단순 ${product.leverage > 0 ? product.leverage : `-${Math.abs(product.leverage)}`}배`,
       value: result.simpleTheoreticalReturn,
     },
-    { label: '일일 복리 이론값', value: result.dailyTheoreticalReturn },
-    { label: '실제 상품 성과', value: result.officialAnalysisReturn },
+    { label: '일일 복리', value: result.dailyTheoreticalReturn },
+    { label: '실제 상품', value: result.officialAnalysisReturn },
   ];
   const maxMagnitude = Math.max(...values.map((item) => Math.abs(item.value)), 0.01);
-  const effectCopy =
+  const effectTone =
+    result.compoundEffectWon > 0 ? 'positive' : result.compoundEffectWon < 0 ? 'negative' : '';
+  const effectLabel =
     result.compoundEffectWon > 0
-      ? `일일 복리효과가 단순 배수보다 ${formatWon(result.compoundEffectWon)} 유리하게 작용했습니다.`
+      ? '양의 복리'
       : result.compoundEffectWon < 0
-        ? `일일 복리효과가 단순 배수보다 ${formatWon(Math.abs(result.compoundEffectWon))} 불리하게 작용했습니다.`
-        : '일일 복리효과와 단순 배수의 차이는 0원입니다.';
+        ? '음의 복리'
+        : '복리 차이 없음';
+  const effectAmount =
+    result.compoundEffectWon > 0
+      ? `${formatWon(result.compoundEffectWon)} 유리`
+      : result.compoundEffectWon < 0
+        ? `${formatWon(Math.abs(result.compoundEffectWon))} 불리`
+        : '0원';
 
   return (
     <section className="comparison-panel" aria-labelledby="compound-heading">
-      <div className="panel-heading">
-        <h3 id="compound-heading">
-          {isReferenceStockProxy
-            ? '본주 기준 복리효과와 실제 상품 성과'
-            : '복리효과와 실제 상품 성과'}
-        </h3>
-        <span className="section-hint">
-          {result.analysisDate?.replaceAll('-', '.')} 공식 분석 기준
-        </span>
-      </div>
-      {isReferenceStockProxy && (
-        <p className="assumption-note">
-          이 상품은 {product.baseIndexName ?? '상품 원지수'}의 일간수익률에 목표 배수를 적용하므로{' '}
-          {product.underlyingName} 본주 종가를 기준으로 환산한 분석입니다. 실제 상품 결과에는{' '}
-          {proxyDifference} 차이가 포함될 수 있습니다.
-        </p>
-      )}
-      <ul className="comparison-table" aria-label="단순 배수, 일일 복리, 실제 상품 성과 비교">
-        {values.map((item) => {
-          const width = `${(Math.abs(item.value) / maxMagnitude) * 100}%`;
-          return (
-            <li className="comparison-row" key={item.label}>
-              <span className="comparison-label">{item.label}</span>
-              <div className="comparison-track" aria-hidden="true">
-                <div className="comparison-half">
-                  {item.value < 0 && <span className="comparison-bar negative" style={{ width }} />}
-                </div>
-                <div className="comparison-half">
-                  {item.value >= 0 && (
-                    <span className="comparison-bar positive" style={{ width }} />
-                  )}
-                </div>
-              </div>
-              <span className="comparison-value">{formatDetailedPercent(item.value)}</span>
-            </li>
-          );
-        })}
-      </ul>
-      <div className="effect-callout">
-        <strong>{effectCopy}</strong>
-        <p>
-          복리효과가 양수여도 전체 투자 손익이 이익이라는 뜻은 아닙니다. 두 개념을 따로 확인하세요.
-        </p>
-      </div>
-      {result.theoreticalActualGapRate !== undefined && (
-        <div className="effect-callout">
-          <strong>
-            이론값과 실제 상품 차이 {formatPercentagePoints(result.theoreticalActualGapRate)} ·{' '}
-            {formatWon(result.theoreticalActualGapWon ?? 0)}
+      <div className="compound-summary">
+        <div>
+          <h3 id="compound-heading">복리효과</h3>
+          <strong className={effectTone}>
+            {result.compoundEffectWon === 0
+              ? `${effectLabel} · ${effectAmount}`
+              : `${effectLabel} · ${formatPercentagePoints(result.compoundEffectRate)}`}
           </strong>
-          <p>
-            실제 매수시점과 종가의 차이, 보수, 추적 차이, 시장가격과 순자산가치의 괴리, 현물·선물
-            차이와 기타 운용요인이 함께 섞인 값입니다.
+        </div>
+        {result.compoundEffectWon !== 0 && <p>단순 배수보다 {effectAmount}</p>}
+      </div>
+      {isReferenceStockProxy && <p className="proxy-note">본주 종가 기준 비교</p>}
+      <details className="calculation-details">
+        <summary>상세 비교</summary>
+        <div className="calculation-details-body">
+          <ul className="comparison-table" aria-label="단순 배수, 일일 복리, 실제 상품 비교">
+            {values.map((item) => {
+              const width = `${(Math.abs(item.value) / maxMagnitude) * 100}%`;
+              return (
+                <li className="comparison-row" key={item.label}>
+                  <span className="comparison-label">{item.label}</span>
+                  <div className="comparison-track" aria-hidden="true">
+                    <div className="comparison-half">
+                      {item.value < 0 && (
+                        <span className="comparison-bar negative" style={{ width }} />
+                      )}
+                    </div>
+                    <div className="comparison-half">
+                      {item.value >= 0 && (
+                        <span className="comparison-bar positive" style={{ width }} />
+                      )}
+                    </div>
+                  </div>
+                  <span className="comparison-value">{formatDetailedPercent(item.value)}</span>
+                </li>
+              );
+            })}
+          </ul>
+          {result.theoreticalActualGapRate !== undefined && (
+            <p className="gap-summary">
+              실제 상품−이론 {formatPercentagePoints(result.theoreticalActualGapRate)} ·{' '}
+              {formatWon(result.theoreticalActualGapWon ?? 0)}
+            </p>
+          )}
+          <p className="assumption-note">
+            복리효과와 전체 손익은 별개입니다. 실제−이론 차이에는 보수, 추적 차이, 시장가격 괴리와
+            매수시점 차이가 포함될 수 있습니다.
+            {isReferenceStockProxy
+              ? ` ${product.underlyingName} 본주 종가로 환산했으며 ${proxyDifference}는 반영하지 않습니다.`
+              : ''}
           </p>
         </div>
-      )}
+      </details>
     </section>
   );
 }

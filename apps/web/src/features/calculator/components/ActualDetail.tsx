@@ -17,12 +17,9 @@ export function ActualDetail({ result, currentPriceDate, usingManualPrice }: Pro
     <section className="actual-detail" aria-labelledby="actual-detail-heading">
       <details>
         <summary>
-          <span id="actual-detail-heading">현재 손익 상세</span>
+          <span id="actual-detail-heading">손익 상세</span>
           <small>
-            평단·수량·평가금액 ·{' '}
-            {usingManualPrice
-              ? '직접 입력 현재가'
-              : `${currentPriceDate.replaceAll('-', '.')} 공식 종가`}
+            {usingManualPrice ? '직접 입력가' : `${currentPriceDate.replaceAll('-', '.')} 종가`}
           </small>
         </summary>
         <dl>

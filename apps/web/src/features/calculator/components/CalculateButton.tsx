@@ -13,16 +13,18 @@ export function CalculateButton({ ready, help }: Props) {
   return (
     <div className={`calculate-button-wrap ${ready ? 'is-ready' : 'is-pending'}`}>
       <Button
-        label="계산하기"
+        label="본전 계산하기"
         variant="primary"
         size="lg"
         width="100%"
         type="submit"
-        aria-describedby={helpId}
+        aria-describedby={ready ? undefined : helpId}
       />
-      <p id={helpId} className="calculate-help">
-        {help}
-      </p>
+      {!ready && (
+        <p id={helpId} className="calculate-help">
+          {help}
+        </p>
+      )}
     </div>
   );
 }

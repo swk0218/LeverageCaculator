@@ -152,12 +152,12 @@ export function CalculatorApp() {
         const validQuantity = Number.isSafeInteger(quantity) && quantity >= 1;
         if (!draft.price && submitAttempted) errors.price = '매수가를 입력해 주세요.';
         else if (draft.price && !validPrice)
-          errors.price = '매수가는 안전한 계산 범위의 1원 이상 정수로 입력해 주세요.';
+          errors.price = '매수가는 1원 이상 정수로 입력해 주세요.';
         if (!draft.quantity && submitAttempted) errors.quantity = '수량을 입력해 주세요.';
         else if (draft.quantity && !validQuantity)
-          errors.quantity = '수량은 안전한 계산 범위의 1주 이상 정수로 입력해 주세요.';
+          errors.quantity = '수량은 1주 이상 정수로 입력해 주세요.';
         if (validPrice && validQuantity && !Number.isSafeInteger(price * quantity))
-          errors.price = '이 매수분의 금액이 안전한 계산 범위를 벗어났습니다.';
+          errors.price = '입력 금액이 너무 큽니다.';
 
         return [draft.id, errors];
       }),
@@ -203,7 +203,7 @@ export function CalculatorApp() {
   const manualPriceDraftValue = parseInteger(manualPriceDraft);
   const manualPriceDraftError =
     isEditingPrice && (!Number.isSafeInteger(manualPriceDraftValue) || manualPriceDraftValue < 1)
-      ? '현재가는 안전한 계산 범위의 1원 이상 정수로 입력해 주세요.'
+      ? '현재가는 1원 이상 정수로 입력해 주세요.'
       : undefined;
   const hasEmptyFields = drafts.some((draft) => !draft.date || !draft.price || !draft.quantity);
   const hasFieldErrors = Object.values(draftErrors).some((row) => Object.keys(row).length > 0);
@@ -223,13 +223,13 @@ export function CalculatorApp() {
 
   const calculateHelp = (() => {
     if (isEditingPrice) return '현재가 변경을 적용하거나 취소해 주세요.';
-    if (hasFieldErrors) return '입력칸 아래의 오류 안내를 확인해 주세요.';
+    if (hasFieldErrors) return '입력값을 확인하세요.';
     if (summaryState.error) return summaryState.error;
     if (drafts.some((draft) => !draft.date)) return '매수일을 입력하면 계산할 수 있습니다.';
     if (drafts.some((draft) => !draft.price)) return '매수가를 입력하면 계산할 수 있습니다.';
     if (drafts.some((draft) => !draft.quantity)) return '수량을 입력하면 계산할 수 있습니다.';
     if (!data) return '가격 데이터를 불러온 뒤 계산할 수 있습니다.';
-    return '입력값은 이 브라우저 안에서만 계산됩니다.';
+    return '';
   })();
 
   const invalidateResult = () => {
@@ -381,7 +381,32 @@ export function CalculatorApp() {
   const mismatch = Boolean(
     data?.latest.underlying && data.latest.underlying.date !== data.latest.product.date,
   );
-  const resultWarnings = data && result ? [...new Set([...data.warnings, ...result.warnings])] : [];
+  const resultWarnings = (() => {
+    if (!data || !result) return [];
+    const repeatedDataWarnings = [
+      '공식 가격 기준일이',
+      '상품과 기초자산의 최신 기준일이',
+      '일간 배수 산정 원지수인',
+      '검증된 기초자산 시계열이',
+      '기초지수 매핑이 검증되지 않아',
+    ];
+    const warnings = [
+      ...data.warnings.filter(
+        (warning) => !repeatedDataWarnings.some((prefix) => warning.startsWith(prefix)),
+      ),
+      ...result.warnings,
+    ];
+    return [
+      ...new Set(
+        warnings.map((warning) =>
+          drafts.reduce(
+            (copy, draft, index) => copy.replaceAll(`매수분 ${draft.id}`, `매수 ${index + 1}`),
+            warning,
+          ),
+        ),
+      ),
+    ];
+  })();
 
   return (
     <div
@@ -398,7 +423,6 @@ export function CalculatorApp() {
         }}
       >
         <DataFreshnessNotice
-          analysisCapability={data?.product.analysisCapability ?? 'actual-only'}
           stale={data?.stale.isStale ?? false}
           date={data?.stale.asOf ?? ''}
           mismatch={mismatch}
@@ -441,18 +465,6 @@ export function CalculatorApp() {
               onAdd={addDraft}
             />
             <PurchaseSummary {...summary} />
-            <PersistenceControl
-              checked={persistInputs}
-              onChange={(checked) => {
-                setPersistInputs(checked);
-                if (!checked) clearState();
-                setStatusMessage(
-                  checked
-                    ? '입력을 이 기기에 30일간 저장합니다.'
-                    : '저장을 끄고 이 기기의 저장값을 삭제했습니다.',
-                );
-              }}
-            />
             {summaryState.error && (
               <p className="summary-error" role="alert">
                 {summaryState.error}
@@ -492,9 +504,23 @@ export function CalculatorApp() {
             />
             <div className="calculator-actions">
               <CalculateButton ready={canCalculate} help={calculateHelp} />
+            </div>
+            <div className="calculator-utilities">
+              <PersistenceControl
+                checked={persistInputs}
+                onChange={(checked) => {
+                  setPersistInputs(checked);
+                  if (!checked) clearState();
+                  setStatusMessage(
+                    checked
+                      ? '입력을 이 기기에 30일간 저장합니다.'
+                      : '저장을 끄고 이 기기의 저장값을 삭제했습니다.',
+                  );
+                }}
+              />
               {hasResettableState && (
                 <button type="button" className="reset-button" onClick={resetAll}>
-                  입력 및 저장값 지우기
+                  전체 지우기
                 </button>
               )}
             </div>
@@ -528,27 +554,14 @@ export function CalculatorApp() {
           <div className="result-heading">
             <h2 id="result-heading">계산 결과</h2>
             <p>
-              현재가 기준{' '}
               {manualPrice !== null
-                ? '직접 입력 현재가'
-                : `${data.latest.product.date.replaceAll('-', '.')} 공식 종가`}{' '}
-              ·{' '}
-              {data.product.analysisBasis === 'reference-stock-proxy'
-                ? '공식 본주 종가 기준'
-                : '공식 분석 기준'}{' '}
-              {result.analysisDate?.replaceAll('-', '.') ?? '분석 불가'}
+                ? data.product.analysisCapability === 'full' && result.analysisDate
+                  ? `손익·본전 직접 입력가 · 복리 ${result.analysisDate.replaceAll('-', '.')} 공식 데이터`
+                  : '손익·본전 직접 입력가'
+                : `${data.latest.product.date.replaceAll('-', '.')} 종가 기준`}
             </p>
           </div>
-          {data.product.analysisCapability === 'actual-only' && (
-            <PartialAnalysisState warnings={resultWarnings} />
-          )}
-          <ResultSummary
-            product={data.product}
-            result={result}
-            scenario={selectedScenario}
-            selectedPeriod={selectedPeriod}
-            usingManualPrice={manualPrice !== null}
-          />
+          <PartialAnalysisState warnings={resultWarnings} />
           {data.product.analysisCapability === 'full' && selectedScenario && (
             <BreakEvenSelector
               product={data.product}
@@ -559,6 +572,7 @@ export function CalculatorApp() {
               onPeriodChange={setSelectedPeriod}
             />
           )}
+          <ResultSummary result={result} />
           {data.product.analysisCapability === 'full' && (
             <CompoundComparison product={data.product} result={result} />
           )}
@@ -567,9 +581,6 @@ export function CalculatorApp() {
             currentPriceDate={data.latest.product.date}
             usingManualPrice={manualPrice !== null}
           />
-          {data.product.analysisCapability === 'full' && (
-            <PartialAnalysisState warnings={resultWarnings} />
-          )}
         </section>
       )}
     </div>

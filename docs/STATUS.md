@@ -1,12 +1,24 @@
 # Current Status
 
-- Current milestone: P10 stock-reference analysis — production deployment and live smoke complete
-- Last completed milestone: 18-product live stock-series target-price and compound analysis
+- Current milestone: P11 concise UX — local implementation and full verification complete; release pending
+- Last completed milestone: P10 live stock-series target-price and compound analysis
 - Quick verification command: `pnpm verify:quick`
 - Full verification command: `pnpm verify`
 
 ## Completed
 
+- The P11 UX pass puts the won-denominated underlying target price first, then current return and
+  product break-even, then a one-line positive/negative compound effect. Formulas, assumptions,
+  theory-versus-actual detail, and position detail remain available in collapsed disclosures.
+- Product Designer, UX Writer, and accessibility reviews removed the homepage explainer/FAQ preview,
+  repeated proxy and healthy-data notices, verbose control help, and four equal-weight result cards.
+  Critical stale, partial-analysis, manual-price, proxy, and prediction-limit disclosures remain.
+- Result copy now labels the exact analysis-date close instead of calling it a current price, states
+  that a manual product price does not replace the official compounding series, maps internal lot IDs
+  to human-readable purchase numbers, and shows partial-analysis warnings before affected figures.
+- Responsive coverage now includes 320px. The P11 local `pnpm verify` passed 107 Vitest tests, two
+  Workerd+D1 tests, 22 non-visual E2E tests, five axe accessibility tests, and 20 Win32 visual
+  comparisons; one live-only error visual remains intentionally skipped.
 - P0–P9 implementation is complete: Astro/React web app, pure calculation engine, contracts,
   official-data adapter, Cloudflare Worker, D1, scheduled ingestion, content, policy pages, SEO,
   advertising gates, tests, CI configuration, and deployment instructions.
@@ -32,11 +44,11 @@
   success, and bodyless backfill is enforced independently of `Content-Length`.
 - Meta Astryx 0.5.0 neutral theme remains the UI foundation. `pnpm astryx doctor` reports six
   passes, zero warnings, and zero failures.
-- `pnpm verify` passes: format, lint, strict types, 106 Vitest tests across ten files, two Workerd+D1
-  runtime tests, production build, Worker dry-run, 21 non-visual E2E tests, five accessibility tests
+- `pnpm verify` passes: format, lint, strict types, 107 Vitest tests across ten files, two Workerd+D1
+  runtime tests, production build, Worker dry-run, 22 non-visual E2E tests, five accessibility tests
   covering all axe WCAG violation severities, and 20 fixture visual comparisons. The live-only
   API-error visual is intentionally skipped in fixture verification.
-- `pnpm verify:quick` separately passes all 30 calculation-core and 37 contract/provider tests.
+- `pnpm verify:quick` separately passes all 30 calculation-core and 38 contract/provider tests.
 - `pnpm audit --audit-level high` reports no known vulnerabilities.
 - Pages run `33337219740` passed the current `pnpm release:check` environment, mapping, stock-series,
   build, security, privacy, SEO, and advertising gates with Secret-generated official JSON.
@@ -70,7 +82,7 @@
 
 ## Known failures and evidence boundaries
 
-- `pnpm verify` passes with 106 Vitest tests, two Workerd+D1 runtime tests, 21 non-visual E2E tests,
+- `pnpm verify` passes with 107 Vitest tests, two Workerd+D1 runtime tests, 22 non-visual E2E tests,
   five accessibility tests, and 20 visual comparisons; one live-only API-error visual is
   intentionally skipped in fixture verification.
 - A local Pages-static `pnpm release:check` without Secret-generated JSON still fails exactly on the
@@ -91,9 +103,10 @@
 
 ## Next exact actions
 
-1. Witness the next natural weekday `15:40 KST` scheduled run and confirm its conclusion and
+1. Complete P11 PR review, Linux visual baselines, CI, Pages deployment, and hosted mobile smoke.
+2. Witness the next natural weekday `15:40 KST` scheduled run and confirm its conclusion and
    provider-reported `basDt` without assuming same-day availability.
-2. Keep AdSense disabled until approval, complete slot configuration, and consent readiness.
+3. Keep AdSense disabled until approval, complete slot configuration, and consent readiness.
 
 ## Screenshot evidence
 
