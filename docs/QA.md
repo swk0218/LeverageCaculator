@@ -150,7 +150,7 @@ verification after approval. GitHub Pages support for `_headers` is not assumed.
 - GitHub Pages browser behavior is witnessed. Worker-origin headers/CSP/CORS and AdSense consent
   remain unwitnessed because those optional services are not deployed or enabled.
 - PR CI run `33337048053`, main CI run `33337219738`, and Pages run `33337219740` passed. The first
-  natural weekday `15:40 KST` cron firing remains an operational recurrence check; the successful
+  natural weekday `13:30 KST` cron firing remains an operational recurrence check; the successful
   current-revision run was push-triggered.
 
 ## Screenshot evidence

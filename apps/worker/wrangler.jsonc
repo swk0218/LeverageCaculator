@@ -19,7 +19,7 @@
     },
   ],
   "triggers": {
-    "crons": ["40 6 * * 1-5"],
+    "crons": ["30 4 * * 1-5"],
   },
   "observability": {
     "enabled": false,

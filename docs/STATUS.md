@@ -71,7 +71,7 @@
 - The approved `DATA_GO_KR_SERVICE_KEY` remains registered as one repository Actions Secret; its
   value was not read, copied, logged, or included in the public artifact.
 - The push-triggered production cycle is witnessed. The first naturally scheduled weekday
-  `15:40 KST` cycle remains an operational recurrence check, not a blocker for the working public
+  `13:30 KST` cycle remains an operational recurrence check, not a blocker for the working public
   release.
 
 ## External or excluded scope
@@ -89,7 +89,7 @@
   missing data directory by design; the positive Secret-backed gate is witnessed in GitHub Actions.
 - The successful run was push-triggered on a weekend. It proves export and deployment wiring, but it
   is not evidence that the weekday cron has fired naturally yet.
-- The provider's reported `basDt` remains authoritative. A 15:40 run never substitutes its generation
+- The provider's reported `basDt` remains authoritative. A 13:30 run never substitutes its generation
   date for a trade date, so a provider publication delay remains visible rather than appearing fresh.
 - The six futures ETFs and two ETNs are not claimed to be exact futures-index/TR-index reconstructions.
   Their won target and compounding panels use the official underlying-company stock close as a
@@ -104,7 +104,7 @@
 ## Next exact actions
 
 1. Complete P11 PR review, Linux visual baselines, CI, Pages deployment, and hosted mobile smoke.
-2. Witness the next natural weekday `15:40 KST` scheduled run and confirm its conclusion and
+2. Witness the next natural weekday `13:30 KST` scheduled run and confirm its conclusion and
    provider-reported `basDt` without assuming same-day availability.
 3. Keep AdSense disabled until approval, complete slot configuration, and consent readiness.
 

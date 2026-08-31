@@ -137,9 +137,9 @@ describe('GitHub Pages market-data export', () => {
     expect(response.data.source).toBe('static-export');
   });
 
-  it('never makes the current weekday eligible before the 15:40 KST cutoff', () => {
-    expect(latestEligibleCloseDate(new Date('2026-08-31T06:39:59.000Z'))).toBe('2026-08-28');
-    expect(latestEligibleCloseDate(new Date('2026-08-31T06:40:00.000Z'))).toBe('2026-08-31');
+  it('never makes the current weekday eligible before the 13:30 KST cutoff', () => {
+    expect(latestEligibleCloseDate(new Date('2026-08-31T04:29:59.000Z'))).toBe('2026-08-28');
+    expect(latestEligibleCloseDate(new Date('2026-08-31T04:30:00.000Z'))).toBe('2026-08-31');
     expect(latestEligibleCloseDate(new Date('2026-08-30T12:00:00.000Z'))).toBe('2026-08-28');
   });
 

@@ -5,9 +5,10 @@ on:
     branches: [main]
   workflow_dispatch:
   schedule:
-    # KRX closes at 15:30 KST. Collect ten minutes after close and keep the
-    # provider's real basDt instead of treating generation time as a trade date.
-    - cron: '40 6 * * 1-5'
+    # FSC publishes the prior business day's data after 13:00 KST. Collect at
+    # 13:30 KST and keep the provider's real basDt instead of treating
+    # generation time as a trade date.
+    - cron: '30 4 * * 1-5'
 
 permissions:
   contents: read

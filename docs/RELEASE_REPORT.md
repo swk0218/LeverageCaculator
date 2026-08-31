@@ -19,7 +19,7 @@
   noindex, disabled-by-default advertising, and data-error contact path.
 - P8: Complete — full local verification, responsive/visual/privacy/accessibility QA, console, bundle,
   dependency, secret, security-header, dead-code, and copy review.
-- P9: Pages-static production release complete — official-data export, 15:40 KST scheduling, release
+- P9: Pages-static production release complete — official-data export, 13:30 KST scheduling, release
   gate, deployment/rollback instructions, live Actions/Pages witnessing, and hosted browser smoke.
   AdSense remains external and disabled.
 - P10: Full-analysis production release complete — official Samsung Electronics/SK hynix stock series,
@@ -136,7 +136,7 @@ The browser sends public product/date identifiers only. Worker credentials and D
 
 ## External actions remaining
 
-1. Witness the first naturally scheduled weekday `15:40 KST` run. The push-triggered run proves
+1. Witness the first naturally scheduled weekday `13:30 KST` run. The push-triggered run proves
    the export/deploy path, but not that the cron event has fired by itself.
 2. Enable AdSense only after approval and consent readiness; otherwise keep it disabled.
 

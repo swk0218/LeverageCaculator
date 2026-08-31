@@ -55,7 +55,7 @@ pnpm dev
 ## Phone site
 
 - [GitHub Pages에서 바로 열기](https://swk0218.github.io/LeverageCaculator/)
-- 운영 workflow는 평일 15:40 KST에 실행되고, 공식 응답의 실제 기준일을 그대로 표시한다.
+- 운영 workflow는 평일 13:30 KST에 실행되고, 공식 응답의 실제 기준일을 그대로 표시한다.
 - 한 상품이라도 비거나 계약 검증에 실패하면 새 Pages 배포를 중단하고 직전 정상 배포를
   유지한다.
 - `fixture`는 로컬 개발·회귀 테스트에만 남는다. Worker/D1은 선택적 확장 경로다.

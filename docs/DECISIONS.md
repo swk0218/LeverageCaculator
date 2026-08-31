@@ -25,12 +25,12 @@ price JSON and never the credential. Export all 18 active products as one atomic
 before Pages upload if any product is missing, empty, mismatched, or malformed. Keep the Worker/D1
 implementation as an optional request-time API rather than a production prerequisite.
 
-Run automatic collection at 15:40 KST (`06:40 UTC`) on weekdays, ten minutes after the KRX close.
-Never infer a trade date from the schedule or generation timestamp: the UI and release evidence use
-the provider's actual `basDt`. A provider lag therefore appears as an older/stale reference date,
-not a fabricated same-day close.
+Run automatic collection at 13:30 KST (`04:30 UTC`) on weekdays, after the official provider's
+13:00 next-business-day publication window. Never infer a trade date from the schedule or generation
+timestamp: the UI and release evidence use the provider's actual `basDt`. A provider lag therefore
+appears as an older/stale reference date, not a fabricated same-day close.
 
-Push and manual workflows may run at other times. Before 15:40 KST on a weekday, the static exporter
+Push and manual workflows may run at other times. Before 13:30 KST on a weekday, the static exporter
 caps its request at the previous weekday; weekend runs cap at Friday. This prevents an unscheduled
 deployment from making an open trading session eligible.
 

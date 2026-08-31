@@ -105,7 +105,7 @@ function weekday(value: string): number {
 }
 
 /**
- * Returns the latest weekday whose 15:40 KST collection cutoff has passed.
+ * Returns the latest weekday whose 13:30 KST collection cutoff has passed.
  *
  * A push or manual workflow can run at any time, so the cron expression alone
  * is not enough to prevent a current trading session from entering an export.
@@ -127,7 +127,7 @@ export function latestEligibleCloseDate(instant: Date): string {
   const hour = Number(values.hour);
   const minute = Number(values.minute);
   const isWeekday = weekday(candidate) >= 1 && weekday(candidate) <= 5;
-  const cutoffHasPassed = hour > 15 || (hour === 15 && minute >= 40);
+  const cutoffHasPassed = hour > 13 || (hour === 13 && minute >= 30);
 
   if (isWeekday && !cutoffHasPassed) candidate = shiftDate(candidate, -1);
   while (weekday(candidate) === 0 || weekday(candidate) === 6) {

@@ -16,9 +16,9 @@ The adapter was checked against the Financial Services Commission documentation 
 
 Requests send only the documented `serviceKey`, `resultType=json`, `numOfRows`, `pageNo`, `beginBasDt`, `endBasDt`, and the dataset-specific code/name filter. The official date contract treats `endBasDt` as an exclusive upper bound, so the adapter converts the app's inclusive `to` date to the following calendar day. It then exact-matches the returned code or index name to prevent a `like` filter from admitting a different instrument.
 
-The upstream service is daily, not intraday. Stock and index pages state that data is updated after 13:00 on the next business day. The app schedules weekday ingestion only after the KRX close, at 15:40 KST (`06:40 UTC`), and always exposes the provider's actual `basDt` rather than treating the generation date as a trade date. The optional Worker path re-requests a rolling ten-calendar-day window. D1 upserts on `(asset_id, trade_date)`, making repeated runs idempotent. A valid empty response (`totalCount = 0`) records an empty sync but preserves the previous cache. Malformed, authentication, timeout, and provider errors fail the sync and also preserve the previous cache.
+The upstream service is daily, not intraday. Stock and index pages state that data is updated after 13:00 on the next business day. The app schedules weekday ingestion at 13:30 KST (`04:30 UTC`), after the official provider's publication window, and always exposes the provider's actual `basDt` rather than treating the generation date as a trade date. This is a next-business-day publication schedule, not a same-day KRX close feed. The optional Worker path re-requests a rolling ten-calendar-day window. D1 upserts on `(asset_id, trade_date)`, making repeated runs idempotent. A valid empty response (`totalCount = 0`) records an empty sync but preserves the previous cache. Malformed, authentication, timeout, and provider errors fail the sync and also preserve the previous cache.
 
-A push or manual Pages run before 15:40 KST is capped at the previous weekday, and a weekend run is
+A push or manual Pages run before 13:30 KST is capped at the previous weekday, and a weekend run is
 capped at Friday. An unscheduled deployment therefore cannot make the current trading session
 eligible merely because it ran.
 

@@ -12,7 +12,7 @@ JSON을 GitHub Pages에 함께 올리는 방식이다. GitHub Actions만 service
 
 `main`에 push하면 [`.github/workflows/pages.yml`](../.github/workflows/pages.yml)이
 GitHub Secret으로 18개 상품의 공식 일별 종가를 수집·검증하고 Astro 정적 사이트와
-함께 GitHub Pages에 배포한다. 같은 workflow는 평일 15:40 KST와 수동 실행도 지원한다.
+함께 GitHub Pages에 배포한다. 같은 workflow는 평일 13:30 KST와 수동 실행도 지원한다.
 
 - 공개 URL: <https://swk0218.github.io/LeverageCaculator/>
 - Pages base path: `/LeverageCaculator`
@@ -122,7 +122,7 @@ Invoke-RestMethod -Method Post -Headers $headers -Uri "$api/api/v1/admin/backfil
 
 HTTP 202를 확인한 뒤 `/api/v1/health`와 대표 상품의
 `/api/v1/analysis-data?productCode=0198B0&from=2026-05-27`를 확인한다. 평일
-06:40 UTC(15:40 KST) scheduled handler는 장 마감 후 최근 10일을 다시 요청하며 D1의
+04:30 UTC(13:30 KST) scheduled handler는 공식 API가 전 영업일 데이터를 공개한 뒤 최근 10일을 다시 요청하며 D1의
 `(asset_id, trade_date)` unique key로 중복 없이 upsert한다. 빈 응답이나 실패는
 기존 정상 데이터를 삭제하지 않는다.
 

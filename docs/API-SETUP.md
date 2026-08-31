@@ -3,9 +3,9 @@
 ## 결론
 
 기본 운영 경로는 Cloudflare가 아니라 **GitHub Pages + GitHub Actions 정적 데이터**다.
-서비스키는 저장소의 Actions Secret `DATA_GO_KR_SERVICE_KEY`에만 두고, 평일 장 마감 후
-15:40 KST에 workflow가 공식 가격을 수집·검증한다. 브라우저와 Pages bundle에는 서비스키가
-들어가지 않는다.
+서비스키는 저장소의 Actions Secret `DATA_GO_KR_SERVICE_KEY`에만 두고, 공식 API가 전 영업일
+데이터를 공개한 뒤인 평일 13:30 KST에 workflow가 공식 가격을 수집·검증한다. 브라우저와
+Pages bundle에는 서비스키가 들어가지 않는다.
 
 Cloudflare Worker/D1은 요청 시점 API나 더 큰 동적 상품 범위가 필요할 때만 사용하는
 선택적 대안이다.
@@ -44,9 +44,9 @@ Secret 값을 다시 보여주지 않으며 workflow에는 등록 여부와 이�
 
 - `main` push
 - Actions 화면의 수동 실행
-- 평일 15:40 KST (`06:40 UTC`) 예약 실행
+- 평일 13:30 KST (`04:30 UTC`) 예약 실행
 
-`main` push나 수동 실행이 평일 15:40 전에 발생해도 생성기는 조회 종료일을 직전
+`main` push나 수동 실행이 평일 13:30 전에 발생해도 생성기는 조회 종료일을 직전
 평일로 제한한다. 토·일요일 실행은 직전 금요일까지만 조회한다. 따라서 예약 시각 외
 실행도 진행 중인 장의 날짜를 가격 기준일로 취급하지 않는다.
 

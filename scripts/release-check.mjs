@@ -858,10 +858,10 @@ function checkMigrations() {
           }
         }
         const effectiveCrons = production?.triggers?.crons ?? config.triggers?.crons;
-        if (!Array.isArray(effectiveCrons) || !effectiveCrons.includes('40 6 * * 1-5')) {
-          fail('Wrangler production must retain the 06:40 UTC weekday ingestion schedule.');
+        if (!Array.isArray(effectiveCrons) || !effectiveCrons.includes('30 4 * * 1-5')) {
+          fail('Wrangler production must retain the 04:30 UTC weekday ingestion schedule.');
         } else {
-          pass('Wrangler production retains the 06:40 UTC weekday ingestion schedule.');
+          pass('Wrangler production retains the 04:30 UTC weekday ingestion schedule.');
         }
       } catch (error) {
         fail(`Wrangler JSONC could not be parsed for release safety: ${String(error)}`);
@@ -900,7 +900,7 @@ function checkPagesWorkflow() {
   }
   const workflow = readText(workflowPath);
   const requirements = [
-    ["cron: '40 6 * * 1-5'", '15:40 KST weekday schedule'],
+    ["cron: '30 4 * * 1-5'", '13:30 KST weekday schedule'],
     ['RELEASE_TARGET: pages-static', 'Pages-static release target'],
     ['PUBLIC_DATA_MODE: live', 'live data mode'],
     ["PUBLIC_API_BASE_URL: ''", 'empty runtime API URL'],
@@ -922,7 +922,7 @@ function checkPagesWorkflow() {
   }
 
   if (failures.length === failureCountBefore) {
-    pass('Pages workflow keeps one step-scoped Secret and runs at 15:40 KST on weekdays.');
+    pass('Pages workflow keeps one step-scoped Secret and runs at 13:30 KST on weekdays.');
   }
 }
 
