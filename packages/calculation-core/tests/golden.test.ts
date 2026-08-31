@@ -7,6 +7,7 @@ import {
   calculateLotTheory,
   calculateProductBreakEvenReturn,
   calculatePurchaseSummary,
+  calculateTransactionLedger,
   calculateUnderlyingBreakEvenScenario,
   calculateUnderlyingBreakEvenScenarios,
   findLatestCommonAnalysisDate,
@@ -15,6 +16,7 @@ import {
   type PricePoint,
   type Product,
   type Purchase,
+  type Sale,
 } from '../src/index.js';
 
 const product = (overrides: Partial<Product> = {}): Product => ({
@@ -136,6 +138,41 @@ describe('mandatory golden vectors', () => {
 });
 
 describe('calculation edge cases and analysis coverage', () => {
+  it('accounts for a partial sale with FIFO cost basis', () => {
+    const purchases = [
+      purchase({ id: 'first', date: '2026-01-02', priceWon: 100, quantity: 10 }),
+      purchase({ id: 'second', date: '2026-01-05', priceWon: 120, quantity: 5 }),
+    ];
+    const sales: Sale[] = [{ id: 'sale-1', date: '2026-01-06', priceWon: 150, quantity: 6 }];
+    expect(calculateTransactionLedger(purchases, sales)).toMatchObject({
+      totalPurchaseCostWon: 1_600,
+      totalSaleProceedsWon: 900,
+      soldQuantity: 6,
+      remainingQuantity: 9,
+      remainingCostWon: 1_000,
+      remainingAveragePriceWon: 1_000 / 9,
+      realizedPnlWon: 300,
+    });
+    expect(calculateActualPerformance(purchases, 130, sales)).toMatchObject({
+      totalCostWon: 1_600,
+      totalQuantity: 9,
+      currentValueWon: 1_170,
+      actualPnlWon: 470,
+      realizedPnlWon: 300,
+      unrealizedPnlWon: 170,
+      actualReturn: 470 / 1_600,
+    });
+  });
+
+  it('rejects a sale larger than the shares held on that date', () => {
+    expect(() =>
+      calculateTransactionLedger(
+        [purchase({ quantity: 2 })],
+        [{ id: 'sale-1', date: '2026-01-05', priceWon: 120, quantity: 3 }],
+      ),
+    ).toThrow('매도 수량이 보유수량보다 많습니다');
+  });
+
   it('calculates purchase summary, current P/L, and already-above-break-even values', () => {
     const purchases = [
       purchase({ priceWon: 1_000, quantity: 2 }),

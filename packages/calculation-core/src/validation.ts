@@ -5,6 +5,8 @@ import type {
   Purchase,
   PurchaseDateValidationOptions,
   PurchaseValidationOptions,
+  Sale,
+  SaleValidationOptions,
   ValidationIssue,
 } from './types.js';
 
@@ -101,6 +103,51 @@ export function validatePurchase(
   if (!Number.isSafeInteger(purchase.quantity) || purchase.quantity < 1) {
     issues.push(
       issue('purchase.invalid-quantity', `${path}.quantity`, '수량은 1주 이상의 정수여야 합니다.'),
+    );
+  }
+
+  return issues;
+}
+
+export function validateSaleDate(
+  date: string,
+  options: PurchaseDateValidationOptions = {},
+): ValidationIssue[] {
+  const issues = validatePurchaseDate(date, options);
+  return issues.map((dateIssue) => ({
+    ...dateIssue,
+    message:
+      dateIssue.code === 'date.invalid'
+        ? '거래일은 YYYY-MM-DD 형식의 유효한 날짜여야 합니다.'
+        : dateIssue.code === 'date.before-listed'
+          ? '상품 상장일 이전 날짜는 입력할 수 없습니다.'
+          : dateIssue.code === 'date.future'
+            ? '미래 날짜는 입력할 수 없습니다.'
+            : '해당 날짜의 공식 가격 데이터가 없습니다.',
+  }));
+}
+
+export function validateSale(sale: Sale, options: SaleValidationOptions = {}): ValidationIssue[] {
+  const index = options.index ?? 0;
+  const path = `sales[${index}]`;
+  const issues: ValidationIssue[] = [];
+
+  if (typeof sale.id !== 'string' || sale.id.trim() === '') {
+    issues.push(issue('sale.id-required', `${path}.id`, '매도분 ID가 필요합니다.'));
+  }
+
+  for (const dateIssue of validateSaleDate(sale.date, options)) {
+    issues.push({ ...dateIssue, path: `${path}.date` });
+  }
+
+  if (!Number.isSafeInteger(sale.priceWon) || sale.priceWon < 1) {
+    issues.push(
+      issue('sale.invalid-price', `${path}.priceWon`, '매도가는 1원 이상의 정수여야 합니다.'),
+    );
+  }
+  if (!Number.isSafeInteger(sale.quantity) || sale.quantity < 1) {
+    issues.push(
+      issue('sale.invalid-quantity', `${path}.quantity`, '매도 수량은 1주 이상의 정수여야 합니다.'),
     );
   }
 
@@ -252,6 +299,20 @@ export function validateAnalysisInput(input: AnalysisInput): ValidationIssue[] {
       );
     }
     purchaseIds.add(purchase.id);
+  });
+
+  const sales = input.sales ?? [];
+  if (sales.length > 50) {
+    issues.push(issue('sales.count', 'sales', '매도내역은 50개 이하로 입력해 주세요.'));
+  }
+  sales.forEach((sale, index) => {
+    issues.push(...validateSale(sale, { index, listedDate: product.listedDate }));
+    if (purchaseIds.has(sale.id)) {
+      issues.push(
+        issue('sale.duplicate-id', `sales[${index}].id`, '거래 ID는 중복될 수 없습니다.'),
+      );
+    }
+    purchaseIds.add(sale.id);
   });
 
   if (!Number.isFinite(input.currentProductPrice) || input.currentProductPrice <= 0) {

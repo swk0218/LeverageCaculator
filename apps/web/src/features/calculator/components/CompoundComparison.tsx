@@ -72,6 +72,9 @@ export function CompoundComparison({ product, result }: Props) {
         </div>
       </div>
       {isReferenceStockProxy && <p className="proxy-note">본주 종가 기준 비교</p>}
+      {result.soldQuantity > 0 && (
+        <p className="proxy-note">매도분은 매도일까지, 보유분은 기준일까지 계산합니다.</p>
+      )}
       <details className="calculation-details">
         <summary>상세 비교</summary>
         <div className="calculation-details-body">

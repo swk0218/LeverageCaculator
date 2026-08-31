@@ -7,6 +7,7 @@ interface Props {
   selectedPeriod: number;
   currentUnderlyingPrice?: number;
   analysisDate?: string;
+  hasSales?: boolean;
   onPeriodChange: (period: number) => void;
 }
 
@@ -16,6 +17,7 @@ export function BreakEvenSelector({
   selectedPeriod,
   currentUnderlyingPrice,
   analysisDate,
+  hasSales = false,
   onPeriodChange,
 }: Props) {
   const isReferenceStockProxy = product.analysisBasis === 'reference-stock-proxy';
@@ -27,7 +29,7 @@ export function BreakEvenSelector({
         ? '배당 재투자'
         : '추적 방식';
   const formatUnderlyingLevel = product.underlyingType === 'stock' ? formatWon : formatIndexPoints;
-  const targetLabel = `본전까지 필요한 ${product.underlyingName} 가격`;
+  const targetLabel = `${hasSales ? '보유분 ' : ''}본전까지 필요한 ${product.underlyingName} 가격`;
   const analysisDateLabel = analysisDate;
 
   return (

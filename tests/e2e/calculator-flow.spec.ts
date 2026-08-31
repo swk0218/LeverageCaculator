@@ -204,6 +204,39 @@ test.describe('calculator fixture flow', () => {
     await expect(purchaseRow(page, 2).getByLabel('매수일')).toBeFocused();
   });
 
+  test('adds a partial sale and separates realized and holding P/L', async ({ page }) => {
+    await fillPurchase(page, 1, purchases.first);
+    await page.getByRole('button', { name: '매도내역 추가' }).click();
+
+    const sale = page.getByRole('group', { name: '매도 1', exact: true });
+    await expect(sale).toBeVisible();
+    await sale.getByLabel('매도일').fill('2026-08-20');
+    await sale.getByLabel('매도가').fill('14000');
+    await sale.getByLabel('매도 수량').fill('3');
+    await expect(sale.getByText('매도 가능 10주')).toBeVisible();
+    await expect(sale.getByRole('alert')).toHaveCount(0);
+
+    const transactionSummary = page.getByLabel('거래내역 자동 계산');
+    await expect(transactionSummary).toContainText('현재 보유');
+    await expect(transactionSummary).toContainText('7주');
+    await expect(transactionSummary).toContainText('실현손익');
+
+    await calculate(page);
+    await expect(resultRegion(page)).toContainText('총 손익');
+    await expect(resultRegion(page)).toContainText('실현손익');
+    await expect(resultRegion(page)).toContainText('보유손익');
+    await expect(resultRegion(page)).toContainText('보유분 본전 필요 수익률');
+    await expect(resultRegion(page)).toContainText(
+      '매도분은 매도일까지, 보유분은 기준일까지 계산합니다.',
+    );
+
+    await sale.getByLabel('매도 수량').fill('11');
+    await expect(sale.getByRole('alert')).toContainText('보유수량보다 많이 매도할 수 없습니다');
+    await expect(page.getByRole('button', { name: '본전 계산하기' })).toHaveAttribute(
+      'aria-describedby',
+    );
+  });
+
   test('requires confirmation and clears incompatible inputs when changing products', async ({
     page,
   }) => {

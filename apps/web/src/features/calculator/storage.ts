@@ -1,4 +1,4 @@
-import type { PurchaseDraft, StoredCalculatorState } from './types';
+import type { PurchaseDraft, SaleDraft, StoredCalculatorState } from './types';
 
 export const STORAGE_KEY = 'yangbok-eumbok:calculator';
 export const STORAGE_TTL_MS = 30 * 24 * 60 * 60 * 1_000;
@@ -29,6 +29,20 @@ const isDraft = (value: unknown): value is PurchaseDraft => {
   );
 };
 
+const isSaleDraft = (value: unknown): value is SaleDraft => {
+  if (!value || typeof value !== 'object') return false;
+  const draft = value as Record<string, unknown>;
+  return (
+    typeof draft.id === 'string' &&
+    draft.id.length > 0 &&
+    draft.id.length <= 128 &&
+    typeof draft.date === 'string' &&
+    ISO_DATE_OR_EMPTY.test(draft.date) &&
+    isSafeFormattedInteger(draft.price) &&
+    isSafeFormattedInteger(draft.quantity)
+  );
+};
+
 export const parseStoredState = (
   raw: string | null,
   now = Date.now(),
@@ -39,6 +53,10 @@ export const parseStoredState = (
     const value: unknown = JSON.parse(raw);
     if (!value || typeof value !== 'object') return null;
     const state = value as Record<string, unknown>;
+    const sales = Array.isArray(state.sales) && state.sales.every(isSaleDraft) ? state.sales : [];
+    const salesAreValid =
+      state.sales === undefined ||
+      (Array.isArray(state.sales) && state.sales.length <= 50 && state.sales.every(isSaleDraft));
     if (
       state.version !== 2 ||
       state.persistInputs !== true ||
@@ -55,7 +73,10 @@ export const parseStoredState = (
       state.purchases.length < 1 ||
       state.purchases.length > 50 ||
       !state.purchases.every(isDraft) ||
-      new Set(state.purchases.map((purchase) => purchase.id)).size !== state.purchases.length ||
+      !salesAreValid ||
+      new Set([...state.purchases.map((purchase) => purchase.id), ...sales.map((sale) => sale.id)])
+        .size !==
+        state.purchases.length + sales.length ||
       !(state.manualCurrentPrice === null || isSafeFormattedInteger(state.manualCurrentPrice))
     ) {
       return null;
