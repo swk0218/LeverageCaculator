@@ -48,32 +48,6 @@
   text-align: right;
 }
 
-.section-description {
-  margin: -4px 0 14px;
-  color: var(--yb-muted);
-  font-size: 13px;
-}
-
-.sale-calculation-details {
-  margin: -4px 0 14px;
-}
-
-.sale-calculation-details summary {
-  display: inline-flex;
-  min-height: 36px;
-  align-items: center;
-  color: var(--yb-accent-strong);
-  font-size: 12px;
-  font-weight: 800;
-  cursor: pointer;
-}
-
-.sale-calculation-details p {
-  margin: 4px 0 0;
-  color: var(--yb-muted);
-  font-size: 12px;
-}
-
 .product-search {
   position: relative;
 }
@@ -306,6 +280,10 @@
 .purchase-list {
   display: grid;
   gap: 14px;
+}
+
+.sale-entry > .purchase-list {
+  margin-top: 14px;
 }
 
 .purchase-row {

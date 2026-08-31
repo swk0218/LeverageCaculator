@@ -665,17 +665,19 @@ export function CalculatorApp() {
               onChange={updateDraft}
               onRemove={removeDraft}
               onAdd={addDraft}
-            />
-            <SaleList
-              drafts={saleDrafts}
-              errors={saleErrors}
-              availableQuantities={saleAvailableQuantities}
-              focusDraftId={focusDraftId}
-              maxDate={todayInKorea()}
-              minDate={data.product.listedDate}
-              onChange={updateSaleDraft}
-              onRemove={removeSaleDraft}
-              onAdd={addSaleDraft}
+              afterAdd={
+                <SaleList
+                  drafts={saleDrafts}
+                  errors={saleErrors}
+                  availableQuantities={saleAvailableQuantities}
+                  focusDraftId={focusDraftId}
+                  maxDate={todayInKorea()}
+                  minDate={data.product.listedDate}
+                  onChange={updateSaleDraft}
+                  onRemove={removeSaleDraft}
+                  onAdd={addSaleDraft}
+                />
+              }
             />
             <PurchaseSummary
               {...summary}

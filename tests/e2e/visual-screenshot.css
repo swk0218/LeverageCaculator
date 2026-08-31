@@ -3,7 +3,7 @@
 }
 
 /*
- * The optional sale-entry panel is covered by the calculator flow and a11y
+ * The optional sale-entry controls are covered by the calculator flow and a11y
  * tests. Keep the long-lived baseline screens focused on the default
  * no-sale journey so adding the optional panel does not invalidate every
  * unrelated viewport snapshot.

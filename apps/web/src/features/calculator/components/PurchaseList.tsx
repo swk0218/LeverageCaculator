@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type { PurchaseDraft, PurchaseDraftErrors } from '../types';
 import { PurchaseRow } from './PurchaseRow';
 
@@ -10,6 +11,7 @@ interface Props {
   onChange: (id: string, field: keyof Omit<PurchaseDraft, 'id'>, value: string) => void;
   onRemove: (id: string) => void;
   onAdd: () => void;
+  afterAdd?: ReactNode;
 }
 
 export function PurchaseList({
@@ -21,6 +23,7 @@ export function PurchaseList({
   onChange,
   onRemove,
   onAdd,
+  afterAdd,
 }: Props) {
   return (
     <section className="calculator-section" aria-labelledby="purchase-heading">
@@ -52,6 +55,7 @@ export function PurchaseList({
           <span>{drafts.length >= 50 ? '최대 50개' : `${drafts.length}개 입력 중`}</span>
         )}
       </button>
+      {afterAdd}
     </section>
   );
 }

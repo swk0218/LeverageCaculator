@@ -117,9 +117,9 @@ test.describe('keyboard and accessibility', () => {
     await page.keyboard.press('Tab');
     await expect(page.getByRole('button', { name: '매수내역 추가' })).toBeFocused();
     await page.keyboard.press('Tab');
-    await expect(page.getByText('매도 계산 기준', { exact: true })).toBeFocused();
-    await page.keyboard.press('Tab');
     await expect(page.getByRole('button', { name: '매도내역 추가' })).toBeFocused();
+    await expect(page.getByText('중간 매도는 선택 입력', { exact: true })).toHaveCount(0);
+    await expect(page.getByText('매도 계산 기준', { exact: true })).toHaveCount(0);
     await page.keyboard.press('Tab');
     await expect(page.getByRole('button', { name: '가격 직접 입력' })).toBeFocused();
     await page.keyboard.press('Tab');
