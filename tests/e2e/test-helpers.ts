@@ -27,7 +27,7 @@ export async function gotoCalculator(page: Page): Promise<void> {
   await page.goto('/');
   await expect(page).toHaveTitle(/단일종목 레버리지 계산기/);
   await expect(
-    page.getByRole('heading', { level: 1, name: '레버리지로 얼마가 돈복사되고 녹았을까요?' }),
+    page.getByRole('heading', { level: 1, name: '레버리지로 얼마가 복사되고 녹았을까요?' }),
   ).toBeVisible();
   await expect(page.getByTestId('calculator-root')).toHaveAttribute('data-hydrated', 'true', {
     timeout: 15_000,

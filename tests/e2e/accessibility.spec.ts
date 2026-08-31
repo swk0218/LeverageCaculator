@@ -168,7 +168,7 @@ test.describe('keyboard and accessibility', () => {
       const targetPrice = target.locator('[aria-live="polite"][aria-atomic="true"]');
       await expect(targetPrice).toContainText(/약 [\d,]+원/);
       await page.getByRole('radio', { name: '5거래일' }).check();
-      await expect(targetPrice).toContainText('5거래일');
+      await expect(targetPrice).not.toContainText('거래일');
       const violations = await axeViolations(page);
       expect(violations, formatViolations(violations)).toEqual([]);
     });

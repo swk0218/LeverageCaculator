@@ -44,8 +44,8 @@ test.describe('calculator fixture flow', () => {
       const period = page.getByRole('radio', { name: `${tradingDays}거래일` });
       await period.check();
       await expect(period).toBeChecked();
-      await expect(targetPriceLiveRegion(page)).toContainText(`${tradingDays}거래일`);
       await expect(targetPriceLiveRegion(page)).toContainText(/약 [\d,]+원/);
+      await expect(targetPriceLiveRegion(page)).not.toContainText('거래일');
     }
 
     await fillThreePurchases(page);
@@ -172,15 +172,15 @@ test.describe('calculator fixture flow', () => {
 
     for (const tradingDays of [1, 5, 20]) {
       await page.getByRole('radio', { name: `${tradingDays}거래일` }).check();
-      await expect(targetPriceLiveRegion(page)).toContainText(`${tradingDays}거래일`);
       await expect(targetPriceLiveRegion(page)).toContainText(/약 [\d,]+원/);
+      await expect(targetPriceLiveRegion(page)).not.toContainText('거래일');
     }
 
     await selectProduct(page, fixtureProducts.positive);
     await fillPurchase(page, 1, purchases.first);
     await calculate(page);
     await expect(resultRegion(page).getByRole('region', { name: '복리효과' })).toContainText(
-      /양의 복리.*2\.0%가 돈복사됐습니다/s,
+      /양의 복리.*2\.0%가 복사됐습니다/s,
     );
 
     await selectProduct(page, fixtureProducts.inverse);

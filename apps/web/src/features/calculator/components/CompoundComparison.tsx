@@ -58,7 +58,7 @@ export function CompoundComparison({ product, result }: Props) {
     result.compoundEffectWon > 0 ? 'positive' : result.compoundEffectWon < 0 ? 'negative' : '';
   const effectCopy =
     result.compoundEffectWon > 0
-      ? `양의 복리로 ${formatPercent(Math.abs(result.compoundEffectRate), 1, false)}가 돈복사됐습니다.`
+      ? `양의 복리로 ${formatPercent(Math.abs(result.compoundEffectRate), 1, false)}가 복사됐습니다.`
       : result.compoundEffectWon < 0
         ? `음의 복리로 ${formatPercent(Math.abs(result.compoundEffectRate), 1, false)}가 녹았습니다.`
         : '복리 차이 없음';

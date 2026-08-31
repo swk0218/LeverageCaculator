@@ -26,7 +26,6 @@ export function BreakEvenSelector({
       : product.baseIndexType === 'total-return-index'
         ? '배당 재투자'
         : '추적 방식';
-  const direction = (scenario.cumulativeUnderlyingReturn ?? 0) >= 0 ? '상승' : '하락';
   const formatUnderlyingLevel = product.underlyingType === 'stock' ? formatWon : formatIndexPoints;
   const targetLabel = `본전까지 필요한 ${product.underlyingName} 가격`;
   const analysisDateLabel = analysisDate;
@@ -66,7 +65,7 @@ export function BreakEvenSelector({
             <p className="target-change tabular">
               {analysisDateLabel ? `${analysisDateLabel} 종가 ` : '기준가 '}
               {formatUnderlyingLevel(currentUnderlyingPrice)}보다{' '}
-              {formatPercent(scenario.cumulativeUnderlyingReturn)} · {selectedPeriod}거래일
+              {formatPercent(scenario.cumulativeUnderlyingReturn)}
             </p>
           )}
         </div>
@@ -77,11 +76,11 @@ export function BreakEvenSelector({
         </div>
       )}
 
-      <p className="target-note">
-        {isReferenceStockProxy
-          ? `본주 환산값 · ${proxyDifference} 차이로 실제와 다를 수 있습니다.`
-          : `매일 같은 비율로 ${direction}하고 목표 배수를 따른다고 가정합니다.`}
-      </p>
+      {isReferenceStockProxy && (
+        <p className="target-note">
+          본주 환산값 · {proxyDifference} 차이로 실제와 다를 수 있습니다.
+        </p>
+      )}
       <details className="assumption-details">
         <summary>계산 기준</summary>
         <p>
