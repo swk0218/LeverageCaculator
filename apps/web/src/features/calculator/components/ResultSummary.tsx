@@ -25,7 +25,7 @@ export function ResultSummary({ result }: Props) {
         </dd>
       </div>
       <div className="result-metric">
-        <dt>상품 본전까지</dt>
+        <dt>본전 필요 수익률</dt>
         <dd>
           <span className={`primary-number ${breakEvenClass}`}>
             {breakEvenDone ? '본전 이상' : formatPercent(result.productBreakEvenReturn)}
