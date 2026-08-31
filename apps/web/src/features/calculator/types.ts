@@ -11,6 +11,19 @@ export interface PurchaseDraftErrors {
   quantity?: string;
 }
 
+export interface SaleDraft {
+  id: string;
+  date: string;
+  price: string;
+  quantity: string;
+}
+
+export interface SaleDraftErrors {
+  date?: string;
+  price?: string;
+  quantity?: string;
+}
+
 export interface StoredCalculatorState {
   version: 2;
   persistInputs: true;
@@ -18,5 +31,6 @@ export interface StoredCalculatorState {
   expiresAt: number;
   productCode: string;
   purchases: PurchaseDraft[];
+  sales?: SaleDraft[];
   manualCurrentPrice: string | null;
 }

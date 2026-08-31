@@ -3,9 +3,10 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { AVAILABLE_PRODUCTS, getLocalProductData } from '@calculator-product-data';
 import {
   analyzePosition,
-  calculatePurchaseSummary,
+  calculateTransactionLedger,
   type AnalysisResult,
   type Purchase,
+  type Sale,
 } from '@yangbok/core';
 
 import './calculator.css';
@@ -21,8 +22,9 @@ import { ProductSearch } from './components/ProductSearch';
 import { PurchaseList } from './components/PurchaseList';
 import { PurchaseSummary } from './components/PurchaseSummary';
 import { ResultSummary } from './components/ResultSummary';
+import { SaleList } from './components/SaleList';
 import { clearState, loadState, saveState } from './storage';
-import type { PurchaseDraft, PurchaseDraftErrors } from './types';
+import type { PurchaseDraft, PurchaseDraftErrors, SaleDraft, SaleDraftErrors } from './types';
 import { useProductData } from './useProductData';
 
 const PRODUCT_DATA_MODE = import.meta.env.PUBLIC_DATA_MODE === 'live' ? 'live' : 'fixture';
@@ -59,10 +61,18 @@ const emptyDraft = (productCode = ''): PurchaseDraft => ({
   quantity: '',
 });
 
+const emptySaleDraft = (): SaleDraft => ({
+  id: globalThis.crypto?.randomUUID?.() ?? `sale-${Date.now()}-${Math.random()}`,
+  date: '',
+  price: '',
+  quantity: '',
+});
+
 export function CalculatorApp() {
   const products = AVAILABLE_PRODUCTS;
   const [selectedCode, setSelectedCode] = useState(DEFAULT_PRODUCT_CODE);
   const [drafts, setDrafts] = useState<PurchaseDraft[]>(() => [emptyDraft(DEFAULT_PRODUCT_CODE)]);
+  const [saleDrafts, setSaleDrafts] = useState<SaleDraft[]>([]);
   const [manualPrice, setManualPrice] = useState<string | null>(null);
   const [manualPriceDraft, setManualPriceDraft] = useState('');
   const [persistInputs, setPersistInputs] = useState(false);
@@ -93,6 +103,7 @@ export function CalculatorApp() {
       if (restored && products.some((product) => product.code === restored.productCode)) {
         setSelectedCode(restored.productCode);
         setDrafts(restored.purchases);
+        setSaleDrafts(restored.sales ?? []);
         const restoredManualPrice = restored.manualCurrentPrice;
         const parsedManualPrice = restoredManualPrice ? parseInteger(restoredManualPrice) : 0;
         setManualPrice(
@@ -125,9 +136,10 @@ export function CalculatorApp() {
       persistInputs: true,
       productCode: selectedCode,
       purchases: drafts,
+      sales: saleDrafts,
       manualCurrentPrice: manualPrice,
     });
-  }, [drafts, hasRestored, manualPrice, persistInputs, selectedCode]);
+  }, [drafts, hasRestored, manualPrice, persistInputs, saleDrafts, selectedCode]);
 
   const availableDates = useMemo(
     () =>
@@ -174,6 +186,91 @@ export function CalculatorApp() {
     );
   }, [availableDates, data, drafts, submitAttempted]);
 
+  const saleAvailableQuantities = useMemo<Record<string, number>>(() => {
+    if (!data || !availableDates) return {};
+    const lots = drafts
+      .map((draft) => ({
+        date: draft.date,
+        quantity: parseInteger(draft.quantity),
+      }))
+      .filter(
+        (draft) =>
+          draft.date &&
+          availableDates.product.has(draft.date) &&
+          Number.isSafeInteger(draft.quantity) &&
+          draft.quantity >= 1,
+      )
+      .sort((left, right) => left.date.localeCompare(right.date));
+    const orderedSales = saleDrafts
+      .map((draft, index) => ({ draft, index }))
+      .sort(
+        (left, right) =>
+          left.draft.date.localeCompare(right.draft.date) || left.index - right.index,
+      );
+    const available: Record<string, number> = {};
+
+    for (const { draft } of orderedSales) {
+      const total = lots.reduce(
+        (sum, lot) => (lot.date <= draft.date ? sum + lot.quantity : sum),
+        0,
+      );
+      available[draft.id] = total;
+      const quantity = parseInteger(draft.quantity);
+      if (!draft.date || !Number.isSafeInteger(quantity) || quantity < 1) continue;
+      let toAllocate = Math.min(quantity, total);
+      for (const lot of lots) {
+        if (toAllocate === 0) break;
+        if (lot.date > draft.date || lot.quantity === 0) continue;
+        const allocated = Math.min(toAllocate, lot.quantity);
+        lot.quantity -= allocated;
+        toAllocate -= allocated;
+      }
+    }
+    return available;
+  }, [availableDates, data, drafts, saleDrafts]);
+
+  const saleErrors = useMemo<Record<string, SaleDraftErrors>>(() => {
+    if (!data || !availableDates) return {};
+    const today = todayInKorea();
+
+    return Object.fromEntries(
+      saleDrafts.map((draft) => {
+        const errors: SaleDraftErrors = {};
+        const price = parseInteger(draft.price);
+        const quantity = parseInteger(draft.quantity);
+
+        if (!draft.date && submitAttempted) errors.date = '매도일을 입력해 주세요.';
+        else if (draft.date) {
+          if (draft.date > today) errors.date = '미래 날짜는 입력할 수 없습니다.';
+          else if (draft.date < data.product.listedDate)
+            errors.date = `상장일(${data.product.listedDate}) 이후를 입력해 주세요.`;
+          else if (!availableDates.product.has(draft.date))
+            errors.date = '이 날짜의 공식 상품 가격이 없습니다.';
+        }
+
+        const validPrice = Number.isSafeInteger(price) && price >= 1;
+        const validQuantity = Number.isSafeInteger(quantity) && quantity >= 1;
+        if (!draft.price && submitAttempted) errors.price = '매도가를 입력해 주세요.';
+        else if (draft.price && !validPrice)
+          errors.price = '매도가는 1원 이상 정수로 입력해 주세요.';
+        if (!draft.quantity && submitAttempted) errors.quantity = '매도 수량을 입력해 주세요.';
+        else if (draft.quantity && !validQuantity)
+          errors.quantity = '매도 수량은 1주 이상 정수로 입력해 주세요.';
+        if (validPrice && validQuantity && !Number.isSafeInteger(price * quantity))
+          errors.price = '입력 금액이 너무 큽니다.';
+
+        const available = saleAvailableQuantities[draft.id] ?? 0;
+        if (validQuantity && !errors.date) {
+          if (available === 0) errors.quantity = '이 날짜에는 매도할 수량이 없습니다.';
+          else if (quantity > available)
+            errors.quantity = `보유수량보다 많이 매도할 수 없습니다. 현재 보유: ${available.toLocaleString('ko-KR')}주`;
+        }
+
+        return [draft.id, errors];
+      }),
+    );
+  }, [availableDates, data, saleAvailableQuantities, saleDrafts, submitAttempted]);
+
   const purchasesForSummary = useMemo<Purchase[]>(
     () =>
       drafts.flatMap((draft) => {
@@ -191,22 +288,51 @@ export function CalculatorApp() {
       }),
     [drafts],
   );
+  const salesForSummary = useMemo<Sale[]>(
+    () =>
+      saleDrafts.flatMap((draft) => {
+        const priceWon = parseInteger(draft.price);
+        const quantity = parseInteger(draft.quantity);
+        if (
+          !draft.date ||
+          !Number.isSafeInteger(priceWon) ||
+          priceWon < 1 ||
+          !Number.isSafeInteger(quantity) ||
+          quantity < 1 ||
+          !Number.isSafeInteger(priceWon * quantity)
+        )
+          return [];
+        return [{ id: draft.id, date: draft.date, priceWon, quantity }];
+      }),
+    [saleDrafts],
+  );
   const summaryState = useMemo(() => {
     if (purchasesForSummary.length === 0) {
       return {
         summary: { totalCostWon: 0, totalQuantity: 0, averagePriceWon: 0 },
+        ledger: null,
         error: null as string | null,
       };
     }
     try {
-      return { summary: calculatePurchaseSummary(purchasesForSummary), error: null };
+      const ledger = calculateTransactionLedger(purchasesForSummary, salesForSummary);
+      return {
+        summary: {
+          totalCostWon: ledger.totalPurchaseCostWon,
+          totalQuantity: ledger.remainingQuantity,
+          averagePriceWon: ledger.remainingAveragePriceWon,
+        },
+        ledger,
+        error: null,
+      };
     } catch (error) {
       return {
         summary: { totalCostWon: 0, totalQuantity: 0, averagePriceWon: 0 },
+        ledger: null,
         error: error instanceof Error ? error.message : '매수내역 합계를 계산할 수 없습니다.',
       };
     }
-  }, [purchasesForSummary]);
+  }, [purchasesForSummary, salesForSummary]);
   const summary = summaryState.summary;
   const currentPrice =
     manualPrice !== null ? parseInteger(manualPrice) : data?.latest.product.close;
@@ -215,8 +341,12 @@ export function CalculatorApp() {
     isEditingPrice && (!Number.isSafeInteger(manualPriceDraftValue) || manualPriceDraftValue < 1)
       ? '현재가는 1원 이상 정수로 입력해 주세요.'
       : undefined;
-  const hasEmptyFields = drafts.some((draft) => !draft.date || !draft.price || !draft.quantity);
-  const hasFieldErrors = Object.values(draftErrors).some((row) => Object.keys(row).length > 0);
+  const hasEmptyFields =
+    drafts.some((draft) => !draft.date || !draft.price || !draft.quantity) ||
+    saleDrafts.some((draft) => !draft.date || !draft.price || !draft.quantity);
+  const hasFieldErrors =
+    Object.values(draftErrors).some((row) => Object.keys(row).length > 0) ||
+    Object.values(saleErrors).some((row) => Object.keys(row).length > 0);
   const canCalculate =
     Boolean(data && currentPrice && Number.isFinite(currentPrice) && currentPrice > 0) &&
     !hasEmptyFields &&
@@ -225,6 +355,7 @@ export function CalculatorApp() {
     !summaryState.error;
   const hasPurchaseInput =
     drafts.length > 1 ||
+    saleDrafts.length > 0 ||
     drafts.some(
       (draft) =>
         draft.price ||
@@ -244,6 +375,8 @@ export function CalculatorApp() {
     if (drafts.some((draft) => !draft.date)) return '매수일을 입력하면 계산할 수 있습니다.';
     if (drafts.some((draft) => !draft.price)) return '매수가를 입력하면 계산할 수 있습니다.';
     if (drafts.some((draft) => !draft.quantity)) return '수량을 입력하면 계산할 수 있습니다.';
+    if (saleDrafts.some((draft) => !draft.date || !draft.price || !draft.quantity))
+      return '매도내역을 입력하면 계산할 수 있습니다.';
     if (!data) return '가격 데이터를 불러온 뒤 계산할 수 있습니다.';
     return '';
   })();
@@ -255,6 +388,14 @@ export function CalculatorApp() {
 
   const updateDraft = (id: string, field: keyof Omit<PurchaseDraft, 'id'>, value: string) => {
     setDrafts((current) =>
+      current.map((draft) => (draft.id === id ? { ...draft, [field]: value } : draft)),
+    );
+    setFocusDraftId(null);
+    invalidateResult();
+  };
+
+  const updateSaleDraft = (id: string, field: keyof Omit<SaleDraft, 'id'>, value: string) => {
+    setSaleDrafts((current) =>
       current.map((draft) => (draft.id === id ? { ...draft, [field]: value } : draft)),
     );
     setFocusDraftId(null);
@@ -289,12 +430,39 @@ export function CalculatorApp() {
     setStatusMessage(`매수 ${drafts.length + 1} 입력란을 추가했습니다.`);
   };
 
+  const removeSaleDraft = (id: string) => {
+    const removedIndex = saleDrafts.findIndex((draft) => draft.id === id);
+    const remaining = saleDrafts.filter((draft) => draft.id !== id);
+    const nextFocus = remaining[Math.min(Math.max(removedIndex, 0), remaining.length - 1)];
+    setSaleDrafts(remaining);
+    setFocusDraftId(nextFocus?.id ?? null);
+    setStatusMessage('매도내역 한 건을 삭제했습니다.');
+    invalidateResult();
+    requestAnimationFrame(() => {
+      if (!nextFocus) return;
+      const row = [...document.querySelectorAll<HTMLElement>('[data-sale-id]')].find(
+        (element) => element.dataset.saleId === nextFocus.id,
+      );
+      row?.querySelector<HTMLInputElement>('input[type="date"]')?.focus();
+    });
+  };
+
+  const addSaleDraft = () => {
+    if (saleDrafts.length >= 50) return;
+    const nextDraft = emptySaleDraft();
+    setSaleDrafts((current) => [...current, nextDraft]);
+    setFocusDraftId(nextDraft.id);
+    setSubmitAttempted(false);
+    invalidateResult();
+    setStatusMessage(`매도 ${saleDrafts.length + 1} 입력란을 추가했습니다.`);
+  };
+
   const selectProduct = (code: string): boolean => {
     if (code === selectedCode) return true;
     if (
       (hasPurchaseInput || manualPrice !== null) &&
       !globalThis.confirm(
-        '상품을 바꾸면 현재 매수내역과 직접 입력한 현재가가 지워집니다. 계속할까요?',
+        '상품을 바꾸면 현재 거래내역과 직접 입력한 현재가가 지워집니다. 계속할까요?',
       )
     ) {
       return false;
@@ -303,6 +471,7 @@ export function CalculatorApp() {
     setSelectedCode(code);
     setDataRetryKey(0);
     setDrafts([emptyDraft(code)]);
+    setSaleDrafts([]);
     setFocusDraftId(null);
     setManualPrice(null);
     setManualPriceDraft('');
@@ -317,7 +486,7 @@ export function CalculatorApp() {
   const resetAll = () => {
     if (
       (hasPurchaseInput || manualPrice !== null) &&
-      !globalThis.confirm('입력한 매수내역과 이 브라우저에 저장된 값을 모두 지울까요?')
+      !globalThis.confirm('입력한 거래내역과 이 브라우저에 저장된 값을 모두 지울까요?')
     ) {
       return;
     }
@@ -325,6 +494,7 @@ export function CalculatorApp() {
     clearState();
     setSelectedCode(DEFAULT_PRODUCT_CODE);
     setDrafts([emptyDraft(DEFAULT_PRODUCT_CODE)]);
+    setSaleDrafts([]);
     setFocusDraftId(null);
     setManualPrice(null);
     setManualPriceDraft('');
@@ -354,12 +524,19 @@ export function CalculatorApp() {
       priceWon: parseInteger(draft.price),
       quantity: parseInteger(draft.quantity),
     }));
+    const sales: Sale[] = saleDrafts.map((draft) => ({
+      id: draft.id,
+      date: draft.date,
+      priceWon: parseInteger(draft.price),
+      quantity: parseInteger(draft.quantity),
+    }));
 
     try {
       const nextResult = analyzePosition(
         {
           product: data.product,
           purchases,
+          sales,
           currentProductPrice: currentPrice,
           productSeries: data.productSeries,
           underlyingSeries: data.underlyingSeries,
@@ -415,10 +592,19 @@ export function CalculatorApp() {
     return [
       ...new Set(
         warnings.map((warning) =>
-          drafts.reduce(
-            (copy, draft, index) => copy.replaceAll(`매수분 ${draft.id}`, `매수 ${index + 1}`),
-            warning,
-          ),
+          [...drafts, ...saleDrafts].reduce((copy, draft) => {
+            const purchaseIndex = drafts.findIndex((purchase) => purchase.id === draft.id);
+            const saleIndex = saleDrafts.findIndex((sale) => sale.id === draft.id);
+            return copy
+              .replaceAll(
+                `매수분 ${draft.id}`,
+                purchaseIndex >= 0 ? `매수 ${purchaseIndex + 1}` : `매수분 ${draft.id}`,
+              )
+              .replaceAll(
+                `매도분 ${draft.id}`,
+                saleIndex >= 0 ? `매도 ${saleIndex + 1}` : `매도분 ${draft.id}`,
+              );
+          }, warning),
         ),
       ),
     ];
@@ -480,7 +666,23 @@ export function CalculatorApp() {
               onRemove={removeDraft}
               onAdd={addDraft}
             />
-            <PurchaseSummary {...summary} />
+            <SaleList
+              drafts={saleDrafts}
+              errors={saleErrors}
+              availableQuantities={saleAvailableQuantities}
+              focusDraftId={focusDraftId}
+              maxDate={todayInKorea()}
+              minDate={data.product.listedDate}
+              onChange={updateSaleDraft}
+              onRemove={removeSaleDraft}
+              onAdd={addSaleDraft}
+            />
+            <PurchaseSummary
+              {...summary}
+              hasSales={saleDrafts.length > 0}
+              soldQuantity={summaryState.ledger?.soldQuantity ?? 0}
+              realizedPnlWon={summaryState.ledger?.realizedPnlWon ?? 0}
+            />
             {summaryState.error && (
               <p className="summary-error" role="alert">
                 {summaryState.error}
@@ -529,7 +731,7 @@ export function CalculatorApp() {
                   if (!checked) clearState();
                   setStatusMessage(
                     checked
-                      ? '매수내역을 이 기기에 30일간 저장합니다.'
+                      ? '거래내역을 이 기기에 30일간 저장합니다.'
                       : '저장을 끄고 이 기기의 저장값을 삭제했습니다.',
                   );
                 }}
@@ -578,16 +780,19 @@ export function CalculatorApp() {
             </p>
           </div>
           <PartialAnalysisState warnings={resultWarnings} />
-          {data.product.analysisCapability === 'full' && selectedScenario && (
-            <BreakEvenSelector
-              product={data.product}
-              scenario={selectedScenario}
-              selectedPeriod={selectedPeriod}
-              currentUnderlyingPrice={analysisUnderlying}
-              analysisDate={result.analysisDate}
-              onPeriodChange={setSelectedPeriod}
-            />
-          )}
+          {data.product.analysisCapability === 'full' &&
+            selectedScenario &&
+            result.totalQuantity > 0 && (
+              <BreakEvenSelector
+                product={data.product}
+                scenario={selectedScenario}
+                selectedPeriod={selectedPeriod}
+                currentUnderlyingPrice={analysisUnderlying}
+                analysisDate={result.analysisDate}
+                hasSales={result.soldQuantity > 0}
+                onPeriodChange={setSelectedPeriod}
+              />
+            )}
           <ResultSummary result={result} />
           {data.product.analysisCapability === 'full' && (
             <CompoundComparison product={data.product} result={result} />

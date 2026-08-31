@@ -8,6 +8,8 @@ import type {
   PricePoint,
   Purchase,
   PurchaseSummary,
+  Sale,
+  TransactionAccounting,
 } from './types.js';
 import {
   AnalysisInputError,
@@ -66,24 +68,149 @@ export function calculatePurchaseSummary(purchases: readonly Purchase[]): Purcha
   };
 }
 
+interface LedgerLot extends Purchase {
+  remainingQuantity: number;
+}
+
+interface SaleAllocation {
+  sale: Sale;
+  purchaseId: string;
+  purchaseDate: ISODate;
+  priceWon: number;
+  quantity: number;
+}
+
+interface TransactionLedger extends TransactionAccounting {
+  remainingLots: Purchase[];
+  saleAllocations: SaleAllocation[];
+}
+
+function requireSafeInteger(value: number, label: string): void {
+  if (!Number.isSafeInteger(value)) {
+    throw new CalculationError(`${label}이(가) 안전한 계산 범위를 벗어났습니다.`);
+  }
+}
+
+/**
+ * Applies sales to purchases in chronological FIFO order. Purchases on the
+ * same date are considered before sales on that date, which keeps the two
+ * separate input lists deterministic and easy to understand.
+ */
+export function calculateTransactionLedger(
+  purchases: readonly Purchase[],
+  sales: readonly Sale[] = [],
+): TransactionLedger {
+  const purchaseSummary = calculatePurchaseSummary(purchases);
+  const purchaseLots: LedgerLot[] = purchases
+    .map((purchase) => ({ ...purchase, remainingQuantity: purchase.quantity }))
+    .sort((left, right) => left.date.localeCompare(right.date));
+  const orderedSales = sales
+    .map((sale, index) => ({ sale, index }))
+    .sort(
+      (left, right) => left.sale.date.localeCompare(right.sale.date) || left.index - right.index,
+    )
+    .map(({ sale }) => sale);
+
+  let totalSaleProceedsWon = 0;
+  let soldQuantity = 0;
+  let realizedPnlWon = 0;
+  const saleAllocations: SaleAllocation[] = [];
+
+  for (const sale of orderedSales) {
+    const availableQuantity = purchaseLots.reduce(
+      (total, lot) => (lot.date <= sale.date ? total + lot.remainingQuantity : total),
+      0,
+    );
+    if (sale.quantity > availableQuantity) {
+      throw new CalculationError(
+        `매도 수량이 보유수량보다 많습니다. ${sale.date} 기준 매도 가능 수량은 ${availableQuantity}주입니다.`,
+      );
+    }
+
+    let quantityToAllocate = sale.quantity;
+    let allocatedCostWon = 0;
+    for (const lot of purchaseLots) {
+      if (quantityToAllocate === 0) break;
+      if (lot.date > sale.date || lot.remainingQuantity === 0) continue;
+      const quantity = Math.min(quantityToAllocate, lot.remainingQuantity);
+      lot.remainingQuantity -= quantity;
+      quantityToAllocate -= quantity;
+      const costWon = lot.priceWon * quantity;
+      allocatedCostWon += costWon;
+      saleAllocations.push({
+        sale,
+        purchaseId: lot.id,
+        purchaseDate: lot.date,
+        priceWon: lot.priceWon,
+        quantity,
+      });
+    }
+
+    const proceedsWon = sale.priceWon * sale.quantity;
+    requireSafeInteger(proceedsWon, '매도 금액');
+    requireSafeInteger(allocatedCostWon, '매도 원가');
+    totalSaleProceedsWon += proceedsWon;
+    soldQuantity += sale.quantity;
+    realizedPnlWon += proceedsWon - allocatedCostWon;
+    requireSafeInteger(totalSaleProceedsWon, '총 매도금액');
+    requireSafeInteger(soldQuantity, '총 매도수량');
+    requireSafeInteger(realizedPnlWon, '실현손익');
+  }
+
+  const remainingLots = purchaseLots
+    .filter((lot) => lot.remainingQuantity > 0)
+    .map(({ remainingQuantity, ...purchase }) => ({
+      ...purchase,
+      quantity: remainingQuantity,
+    }));
+  const remainingQuantity = remainingLots.reduce((total, lot) => total + lot.quantity, 0);
+  const remainingCostWon = remainingLots.reduce(
+    (total, lot) => total + lot.priceWon * lot.quantity,
+    0,
+  );
+  requireSafeInteger(remainingQuantity, '남은 보유수량');
+  requireSafeInteger(remainingCostWon, '남은 매수금액');
+
+  return {
+    totalPurchaseCostWon: purchaseSummary.totalCostWon,
+    totalSaleProceedsWon,
+    soldQuantity,
+    remainingQuantity,
+    remainingCostWon,
+    remainingAveragePriceWon: remainingQuantity > 0 ? remainingCostWon / remainingQuantity : 0,
+    realizedPnlWon,
+    remainingLots,
+    saleAllocations,
+  };
+}
+
 export function calculateActualPerformance(
   purchases: readonly Purchase[],
   currentProductPrice: number,
+  sales: readonly Sale[] = [],
 ): ActualPerformance {
   requirePositiveFinite(currentProductPrice, '현재 상품 가격');
-  const summary = calculatePurchaseSummary(purchases);
-  const currentValueWon = currentProductPrice * summary.totalQuantity;
-  const actualPnlWon = currentValueWon - summary.totalCostWon;
+  const ledger = calculateTransactionLedger(purchases, sales);
+  const currentValueWon = currentProductPrice * ledger.remainingQuantity;
+  const unrealizedPnlWon = currentValueWon - ledger.remainingCostWon;
+  const actualPnlWon = ledger.realizedPnlWon + unrealizedPnlWon;
 
   if (!Number.isFinite(currentValueWon) || !Number.isFinite(actualPnlWon)) {
     throw new CalculationError('현재 손익이 안전한 계산 범위를 벗어났습니다.');
   }
 
   return {
-    ...summary,
+    totalCostWon: ledger.totalPurchaseCostWon,
+    totalQuantity: ledger.remainingQuantity,
+    averagePriceWon: ledger.remainingAveragePriceWon,
     currentValueWon: normalizeZero(currentValueWon),
     actualPnlWon: normalizeZero(actualPnlWon),
-    actualReturn: normalizeZero(currentValueWon / summary.totalCostWon - 1),
+    actualReturn: normalizeZero(actualPnlWon / ledger.totalPurchaseCostWon),
+    totalSaleProceedsWon: ledger.totalSaleProceedsWon,
+    soldQuantity: ledger.soldQuantity,
+    remainingCostWon: ledger.remainingCostWon,
+    realizedPnlWon: normalizeZero(ledger.realizedPnlWon),
+    unrealizedPnlWon: normalizeZero(unrealizedPnlWon),
   };
 }
 
@@ -297,16 +424,200 @@ function noCommonDateWarning(): string {
   return '상품과 기초자산에 공통 공식 거래일이 없어 복리 분석을 계산하지 못했습니다.';
 }
 
+function saleTheoryWarning(sale: Sale, reason: string): string {
+  return `매도분 ${sale.id}은(는) ${reason} 복리 분석에서 제외했습니다.`;
+}
+
+function calculateSalesAnalysis(
+  input: AnalysisInput,
+  actual: ActualPerformance,
+  analysisDate: ISODate,
+  periods: readonly number[],
+): AnalysisResult {
+  const sales = input.sales ?? [];
+  const ledger = calculateTransactionLedger(input.purchases, sales);
+  const productSeries = normalizePriceSeries(input.productSeries);
+  const underlyingSeries = normalizePriceSeries(input.underlyingSeries);
+  const productTradingDates = productSeries.map((point) => point.date);
+  const underlyingDates = new Set(underlyingSeries.map((point) => point.date));
+  const warnings: string[] = [];
+  const lotTheory: LotTheoryResult[] = [];
+  const analyzedPurchaseIds = new Set<string>();
+  const totalSegments = ledger.saleAllocations.length + ledger.remainingLots.length;
+  const officialProductPrice = priceAt(productSeries, analysisDate);
+  const currentUnderlyingPrice = priceAt(underlyingSeries, analysisDate);
+
+  const breakEvenScenarios =
+    actual.totalQuantity > 0
+      ? calculateUnderlyingBreakEvenScenarios(
+          actual.averagePriceWon,
+          input.currentProductPrice,
+          input.product.leverage,
+          periods,
+          currentUnderlyingPrice,
+        )
+      : [];
+
+  const analyzeSegment = (
+    purchase: Purchase,
+    quantity: number,
+    endDate: ISODate,
+    sale?: Sale,
+  ): void => {
+    if (endDate > analysisDate) {
+      if (sale) warnings.push(saleTheoryWarning(sale, `공식 분석일(${analysisDate}) 이후라`));
+      return;
+    }
+    if (priceAt(productSeries, endDate) === undefined) {
+      if (sale) warnings.push(saleTheoryWarning(sale, `${endDate} 공식 상품 종가가 없어`));
+      return;
+    }
+    if (priceAt(underlyingSeries, purchase.date) === undefined) {
+      if (sale) warnings.push(saleTheoryWarning(sale, `${purchase.date} 기초자산 종가가 없어`));
+      return;
+    }
+    if (priceAt(underlyingSeries, endDate) === undefined) {
+      if (sale) warnings.push(saleTheoryWarning(sale, `${endDate} 기초자산 종가가 없어`));
+      return;
+    }
+    const missingTradingDates = findMissingUnderlyingTradingDates(
+      productTradingDates,
+      underlyingDates,
+      purchase.date,
+      endDate,
+    );
+    if (missingTradingDates.length > 0) {
+      if (sale) warnings.push(saleTheoryWarning(sale, '기초자산 종가가 누락되어'));
+      return;
+    }
+    const theory = calculateLotTheory(
+      { ...purchase, quantity },
+      underlyingSeries,
+      endDate,
+      input.product.leverage,
+    );
+    const theoryWithQuantity: LotTheoryResult = { ...theory, quantity };
+    if (sale) theoryWithQuantity.saleId = sale.id;
+    lotTheory.push(theoryWithQuantity);
+    analyzedPurchaseIds.add(purchase.id);
+  };
+
+  for (const allocation of ledger.saleAllocations) {
+    const purchase = input.purchases.find(({ id }) => id === allocation.purchaseId);
+    if (!purchase) continue;
+    analyzeSegment(purchase, allocation.quantity, allocation.sale.date, allocation.sale);
+  }
+  for (const purchase of ledger.remainingLots) {
+    analyzeSegment(purchase, purchase.quantity, analysisDate);
+  }
+
+  const excludedPurchaseIds = input.purchases
+    .map(({ id }) => id)
+    .filter((id) => !analyzedPurchaseIds.has(id));
+  const analysisCoverage =
+    lotTheory.length === totalSegments && analyzedPurchaseIds.size === input.purchases.length
+      ? 'full'
+      : analyzedPurchaseIds.size > 0
+        ? 'partial'
+        : 'unavailable';
+  if (analysisCoverage === 'partial') {
+    warnings.push(
+      `일부 거래만 복리 분석에 포함된 부분 분석입니다. (${lotTheory.length}/${totalSegments}건)`,
+    );
+  } else if (analysisCoverage === 'unavailable') {
+    warnings.push('복리 분석 가능한 매수분이 없습니다.');
+  }
+
+  if (officialProductPrice === undefined) {
+    warnings.push('공식 분석일의 상품 종가가 없어 거래 복리 비교를 계산하지 못했습니다.');
+  }
+
+  const simpleTheoreticalPnlWon = lotTheory.reduce(
+    (total, lot) => total + lot.simpleTheoreticalPnlWon,
+    0,
+  );
+  const dailyTheoreticalPnlWon = lotTheory.reduce(
+    (total, lot) => total + lot.dailyTheoreticalPnlWon,
+    0,
+  );
+  const compoundEffectWon = dailyTheoreticalPnlWon - simpleTheoreticalPnlWon;
+
+  let officialValueWon = 0;
+  let officialValueComplete = officialProductPrice !== undefined;
+  for (const allocation of ledger.saleAllocations) {
+    const salePrice = priceAt(productSeries, allocation.sale.date);
+    if (salePrice === undefined) {
+      officialValueComplete = false;
+      continue;
+    }
+    officialValueWon += salePrice * allocation.quantity;
+  }
+  if (officialProductPrice !== undefined) {
+    officialValueWon += officialProductPrice * ledger.remainingQuantity;
+  }
+  const officialAnalysisPnlWon = officialValueComplete
+    ? officialValueWon - ledger.totalPurchaseCostWon
+    : undefined;
+  const denominator = ledger.totalPurchaseCostWon;
+  const analyzedCostWon = lotTheory.reduce((total, lot) => total + lot.principalWon, 0);
+
+  const theoryFields: Partial<AnalysisResult> = {};
+  if (lotTheory.length > 0) {
+    Object.assign(theoryFields, {
+      simpleTheoreticalPnlWon: normalizeZero(simpleTheoreticalPnlWon),
+      dailyTheoreticalPnlWon: normalizeZero(dailyTheoreticalPnlWon),
+      compoundEffectWon: normalizeZero(compoundEffectWon),
+      compoundEffectRate: normalizeZero(compoundEffectWon / denominator),
+      analyzedCostWon: normalizeZero(analyzedCostWon),
+      analyzedQuantity: lotTheory.reduce((total, lot) => total + (lot.quantity ?? 0), 0),
+      analysisCoverageRate: normalizeZero(analyzedCostWon / denominator),
+      simpleTheoreticalReturn: normalizeZero(simpleTheoreticalPnlWon / denominator),
+      dailyTheoreticalReturn: normalizeZero(dailyTheoreticalPnlWon / denominator),
+    });
+  }
+  if (officialAnalysisPnlWon !== undefined) {
+    Object.assign(theoryFields, {
+      officialAnalysisPnlWon,
+      officialAnalysisReturn: normalizeZero(officialAnalysisPnlWon / denominator),
+    });
+  }
+  if (officialAnalysisPnlWon !== undefined && lotTheory.length > 0) {
+    Object.assign(theoryFields, {
+      theoreticalActualGapWon: normalizeZero(officialAnalysisPnlWon - dailyTheoreticalPnlWon),
+      theoreticalActualGapRate: normalizeZero(
+        (officialAnalysisPnlWon - dailyTheoreticalPnlWon) / denominator,
+      ),
+    });
+  }
+
+  return {
+    ...actual,
+    productBreakEvenReturn:
+      actual.totalQuantity > 0
+        ? calculateProductBreakEvenReturn(actual.averagePriceWon, input.currentProductPrice)
+        : 0,
+    breakEvenScenarios,
+    analysisDate,
+    warnings,
+    analysisCoverage,
+    analyzedPurchaseIds: [...analyzedPurchaseIds],
+    excludedPurchaseIds,
+    lotTheory,
+    ...theoryFields,
+  };
+}
+
 export function analyzePosition(
   input: AnalysisInput,
   periods: readonly number[] = DEFAULT_BREAK_EVEN_PERIODS,
 ): AnalysisResult {
   assertValidAnalysisInput(input);
-  const actual = calculateActualPerformance(input.purchases, input.currentProductPrice);
-  const productBreakEvenReturn = calculateProductBreakEvenReturn(
-    actual.averagePriceWon,
-    input.currentProductPrice,
-  );
+  const sales = input.sales ?? [];
+  const actual = calculateActualPerformance(input.purchases, input.currentProductPrice, sales);
+  const productBreakEvenReturn =
+    actual.totalQuantity > 0
+      ? calculateProductBreakEvenReturn(actual.averagePriceWon, input.currentProductPrice)
+      : 0;
   const baseResult = {
     ...actual,
     productBreakEvenReturn,
@@ -332,16 +643,23 @@ export function analyzePosition(
   if (!analysisDate) {
     return {
       ...baseResult,
-      breakEvenScenarios: calculateUnderlyingBreakEvenScenarios(
-        actual.averagePriceWon,
-        input.currentProductPrice,
-        input.product.leverage,
-        periods,
-      ),
+      breakEvenScenarios:
+        actual.totalQuantity > 0
+          ? calculateUnderlyingBreakEvenScenarios(
+              actual.averagePriceWon,
+              input.currentProductPrice,
+              input.product.leverage,
+              periods,
+            )
+          : [],
       warnings: [noCommonDateWarning()],
       analysisCoverage: 'unavailable',
       excludedPurchaseIds: input.purchases.map((purchase) => purchase.id),
     };
+  }
+
+  if (sales.length > 0) {
+    return calculateSalesAnalysis(input, actual, analysisDate, periods);
   }
 
   const currentUnderlyingPrice = priceAt(underlyingSeries, analysisDate);

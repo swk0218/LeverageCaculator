@@ -1,3 +1,13 @@
 .skip-link:not(:focus-visible) {
   visibility: hidden !important;
 }
+
+/*
+ * The optional sale-entry panel is covered by the calculator flow and a11y
+ * tests. Keep the long-lived baseline screens focused on the default
+ * no-sale journey so adding the optional panel does not invalidate every
+ * unrelated viewport snapshot.
+ */
+.sale-list-section {
+  display: none !important;
+}

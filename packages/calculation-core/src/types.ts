@@ -7,6 +7,13 @@ export interface Purchase {
   quantity: number;
 }
 
+export interface Sale {
+  id: string;
+  date: ISODate;
+  priceWon: number;
+  quantity: number;
+}
+
 export interface Product {
   code: string;
   name: string;
@@ -33,9 +40,20 @@ export interface PricePoint {
 export interface AnalysisInput {
   product: Product;
   purchases: Purchase[];
+  sales?: Sale[];
   currentProductPrice: number;
   productSeries: PricePoint[];
   underlyingSeries: PricePoint[];
+}
+
+export interface TransactionAccounting {
+  totalPurchaseCostWon: number;
+  totalSaleProceedsWon: number;
+  soldQuantity: number;
+  remainingQuantity: number;
+  remainingCostWon: number;
+  remainingAveragePriceWon: number;
+  realizedPnlWon: number;
 }
 
 export interface PurchaseSummary {
@@ -48,6 +66,11 @@ export interface ActualPerformance extends PurchaseSummary {
   currentValueWon: number;
   actualPnlWon: number;
   actualReturn: number;
+  totalSaleProceedsWon: number;
+  soldQuantity: number;
+  remainingCostWon: number;
+  realizedPnlWon: number;
+  unrealizedPnlWon: number;
 }
 
 export interface BreakEvenScenario {
@@ -64,6 +87,8 @@ export interface LotTheoryResult {
   purchaseId: string;
   purchaseDate: ISODate;
   analysisDate: ISODate;
+  saleId?: string;
+  quantity?: number;
   principalWon: number;
   startUnderlyingPrice: number;
   endUnderlyingPrice: number;
@@ -114,5 +139,9 @@ export interface PurchaseDateValidationOptions {
 }
 
 export interface PurchaseValidationOptions extends PurchaseDateValidationOptions {
+  index?: number;
+}
+
+export interface SaleValidationOptions extends PurchaseDateValidationOptions {
   index?: number;
 }

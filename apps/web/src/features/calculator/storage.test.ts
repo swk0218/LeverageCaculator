@@ -10,6 +10,7 @@ import {
 } from './storage';
 
 const validPurchase = { id: 'lot-1', date: '2026-08-17', price: '12,000', quantity: '10' };
+const validSale = { id: 'sale-1', date: '2026-08-20', price: '14,000', quantity: '3' };
 
 const now = Date.UTC(2026, 7, 26);
 const saveableState = {
@@ -33,6 +34,10 @@ afterEach(() => {
 describe('calculator local storage boundary', () => {
   it('accepts only the versioned calculator shape', () => {
     expect(parseStoredState(JSON.stringify(validState), now)).toEqual(validState);
+    expect(parseStoredState(JSON.stringify({ ...validState, sales: [validSale] }), now)).toEqual({
+      ...validState,
+      sales: [validSale],
+    });
     expect(parseStoredState('{')).toBeNull();
     expect(parseStoredState(JSON.stringify({ ...validState, version: 1 }), now)).toBeNull();
     expect(
@@ -63,6 +68,12 @@ describe('calculator local storage boundary', () => {
           ...validState,
           purchases: Array.from({ length: 51 }, () => validPurchase),
         }),
+        now,
+      ),
+    ).toBeNull();
+    expect(
+      parseStoredState(
+        JSON.stringify({ ...validState, sales: [{ ...validSale, id: validPurchase.id }] }),
         now,
       ),
     ).toBeNull();

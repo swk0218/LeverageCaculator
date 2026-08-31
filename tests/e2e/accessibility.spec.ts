@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 
 import {
+  calculate,
   fillPurchase,
   fixtureProducts,
   gotoCalculator,
@@ -116,6 +117,10 @@ test.describe('keyboard and accessibility', () => {
     await page.keyboard.press('Tab');
     await expect(page.getByRole('button', { name: '매수내역 추가' })).toBeFocused();
     await page.keyboard.press('Tab');
+    await expect(page.getByText('매도 계산 기준', { exact: true })).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(page.getByRole('button', { name: '매도내역 추가' })).toBeFocused();
+    await page.keyboard.press('Tab');
     await expect(page.getByRole('button', { name: '가격 직접 입력' })).toBeFocused();
     await page.keyboard.press('Tab');
 
@@ -150,6 +155,18 @@ test.describe('keyboard and accessibility', () => {
     await page.goto('/products/');
     const productListViolations = await axeViolations(page);
     expect(productListViolations, formatViolations(productListViolations)).toEqual([]);
+  });
+
+  test('has no axe violations in the partial-sale result @a11y', async ({ page }) => {
+    await fillPurchase(page, 1, purchases.first);
+    await page.getByRole('button', { name: '매도내역 추가' }).click();
+    const sale = page.getByRole('group', { name: '매도 1', exact: true });
+    await sale.getByLabel('매도일').fill('2026-08-20');
+    await sale.getByLabel('매도가').fill('14000');
+    await sale.getByLabel('매도 수량').fill('3');
+    await calculate(page);
+    const violations = await axeViolations(page);
+    expect(violations, formatViolations(violations)).toEqual([]);
   });
 
   for (const viewport of [
