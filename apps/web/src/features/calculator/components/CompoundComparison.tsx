@@ -1,5 +1,6 @@
 import {
   formatDetailedPercent,
+  formatPercent,
   formatPercentagePoints,
   formatWon,
   type AnalysisResult,
@@ -55,31 +56,20 @@ export function CompoundComparison({ product, result }: Props) {
   const maxMagnitude = Math.max(...values.map((item) => Math.abs(item.value)), 0.01);
   const effectTone =
     result.compoundEffectWon > 0 ? 'positive' : result.compoundEffectWon < 0 ? 'negative' : '';
-  const effectLabel =
+  const effectCopy =
     result.compoundEffectWon > 0
-      ? '양의 복리'
+      ? `양의 복리로 ${formatPercent(Math.abs(result.compoundEffectRate), 1, false)}가 돈복사됐습니다.`
       : result.compoundEffectWon < 0
-        ? '음의 복리'
+        ? `음의 복리로 ${formatPercent(Math.abs(result.compoundEffectRate), 1, false)}가 녹았습니다.`
         : '복리 차이 없음';
-  const effectAmount =
-    result.compoundEffectWon > 0
-      ? `${formatWon(result.compoundEffectWon)} 유리`
-      : result.compoundEffectWon < 0
-        ? `${formatWon(Math.abs(result.compoundEffectWon))} 불리`
-        : '0원';
 
   return (
     <section className="comparison-panel" aria-labelledby="compound-heading">
       <div className="compound-summary">
         <div>
           <h3 id="compound-heading">복리효과</h3>
-          <strong className={effectTone}>
-            {result.compoundEffectWon === 0
-              ? `${effectLabel} · ${effectAmount}`
-              : `${effectLabel} · ${formatPercentagePoints(result.compoundEffectRate)}`}
-          </strong>
+          <strong className={effectTone}>{effectCopy}</strong>
         </div>
-        {result.compoundEffectWon !== 0 && <p>단순 배수보다 {effectAmount}</p>}
       </div>
       {isReferenceStockProxy && <p className="proxy-note">본주 종가 기준 비교</p>}
       <details className="calculation-details">

@@ -35,7 +35,7 @@ test.describe('calculator fixture flow', () => {
 
     await calculate(page);
     await expect(resultMetric(page, '내 수익률')).toContainText(/[-+]\d/);
-    await expect(resultMetric(page, '상품 본전까지')).toContainText(/본전 이상|[-+]\d/);
+    await expect(resultMetric(page, '본전 필요 수익률')).toContainText(/본전 이상|[-+]\d/);
     await expect(resultRegion(page).getByRole('region', { name: '복리효과' })).toContainText(
       /양의 복리|음의 복리|복리 차이 없음/,
     );
@@ -167,7 +167,7 @@ test.describe('calculator fixture flow', () => {
     await expect(targetPriceLiveRegion(page)).toHaveAttribute('aria-live', 'polite');
     await expect(targetPriceLiveRegion(page)).toHaveAttribute('aria-atomic', 'true');
     await expect(resultRegion(page).getByRole('region', { name: '복리효과' })).toContainText(
-      /음의 복리.*불리/s,
+      /음의 복리.*녹았습니다/s,
     );
 
     for (const tradingDays of [1, 5, 20]) {
@@ -180,7 +180,7 @@ test.describe('calculator fixture flow', () => {
     await fillPurchase(page, 1, purchases.first);
     await calculate(page);
     await expect(resultRegion(page).getByRole('region', { name: '복리효과' })).toContainText(
-      /양의 복리.*2,400원 유리/s,
+      /양의 복리.*2\.0%가 돈복사됐습니다/s,
     );
 
     await selectProduct(page, fixtureProducts.inverse);

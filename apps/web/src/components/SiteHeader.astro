@@ -12,9 +12,11 @@ const items = [
 
 <header class="site-header">
   <div class="page-shell header-inner">
-    <a class="brand" href={withSiteBase('/')} aria-label="양복음복 홈">
-      <span class="brand-mark" aria-hidden="true">YB</span>
-      <span class="brand-name">양복음복</span>
+    <a class="brand" href={withSiteBase('/')} aria-label="단일종목 레버리지 계산기 홈">
+      <span class="brand-mark" aria-hidden="true">
+        <img src={withSiteBase('/pepe-avatar.webp')} alt="" width="34" height="34" />
+      </span>
+      <span class="brand-name">단일종목 레버리지 계산기</span>
     </a>
 
     <nav class="desktop-nav" aria-label="주요 메뉴">
@@ -79,13 +81,18 @@ const items = [
     width: 34px;
     height: 34px;
     place-items: center;
+    overflow: hidden;
     border: 1px solid var(--yb-border-strong);
-    border-radius: 12px;
+    border-radius: 50%;
     background: var(--yb-accent-soft);
-    color: var(--yb-accent-strong);
-    font-size: 10px;
-    font-weight: 900;
-    letter-spacing: -0.08em;
+    box-shadow: 0 2px 7px rgba(16, 24, 40, 0.12);
+  }
+
+  .brand-mark img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
   }
 
   .brand-name {
@@ -186,6 +193,11 @@ const items = [
 
     .mobile-nav {
       display: block;
+    }
+
+    .brand-name {
+      font-size: 14px;
+      letter-spacing: -0.06em;
     }
   }
 </style>
