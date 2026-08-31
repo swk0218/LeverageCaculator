@@ -153,7 +153,7 @@ export function CalculatorApp() {
         else if (draft.date) {
           if (draft.date > today) errors.date = '미래 날짜는 입력할 수 없습니다.';
           else if (draft.date < data.product.listedDate)
-            errors.date = `상장일(${data.product.listedDate.replaceAll('-', '.')}) 이후를 입력해 주세요.`;
+            errors.date = `상장일(${data.product.listedDate}) 이후를 입력해 주세요.`;
           else if (!availableDates.product.has(draft.date))
             errors.date = '이 날짜의 공식 상품 가격이 없습니다.';
         }
@@ -572,9 +572,9 @@ export function CalculatorApp() {
             <p>
               {manualPrice !== null
                 ? data.product.analysisCapability === 'full' && result.analysisDate
-                  ? `손익·본전 직접 입력가 · 복리 ${result.analysisDate.replaceAll('-', '.')} 공식 데이터`
+                  ? `손익·본전 직접 입력가 · 복리 ${result.analysisDate} 공식 데이터`
                   : '손익·본전 직접 입력가'
-                : `${data.latest.product.date.replaceAll('-', '.')} 종가 기준`}
+                : `${data.latest.product.date} 종가 기준`}
             </p>
           </div>
           <PartialAnalysisState warnings={resultWarnings} />

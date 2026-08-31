@@ -159,7 +159,7 @@ test.describe('calculator fixture flow', () => {
     await selectProduct(page, fixtureProducts.full);
     await fillPurchase(page, 1, purchases.first);
     await calculate(page);
-    await expect(resultRegion(page)).toContainText('2026.08.25 종가');
+    await expect(resultRegion(page)).toContainText('2026-08-25 종가');
     await expect(
       targetRegion(page).getByRole('heading', { name: /본전까지 필요한/ }),
     ).toBeVisible();
