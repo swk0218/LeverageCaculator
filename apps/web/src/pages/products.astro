@@ -24,6 +24,9 @@ const analysisScopeLabel = (product: (typeof PRODUCT_MASTER)[number]) =>
       ? '본주 환산 참고'
       : '본주 기준';
 
+const leverageTone = (product: (typeof PRODUCT_MASTER)[number]) =>
+  product.leverage < 0 ? 'negative' : 'positive';
+
 const productGroups = [
   {
     label: '삼성전자 상품',
@@ -70,7 +73,11 @@ const productGroups = [
                   {product.name}
                 </a>
               </td>
-              <td>{product.leverage > 0 ? `+${product.leverage}X` : `${product.leverage}X`}</td>
+              <td>
+                <span class={`leverage-value ${leverageTone(product)}`}>
+                  {product.leverage > 0 ? `+${product.leverage}X` : `${product.leverage}X`}
+                </span>
+              </td>
               <td>
                 {product.productType} ·{' '}
                 {product.baseIndexType
@@ -107,7 +114,9 @@ const productGroups = [
                     <strong>{product.name}</strong>
                     <span class="tabular">{product.code}</span>
                   </div>
-                  <b>{product.leverage > 0 ? `+${product.leverage}X` : `${product.leverage}X`}</b>
+                  <b class={`leverage-value ${leverageTone(product)}`}>
+                    {product.leverage > 0 ? `+${product.leverage}X` : `${product.leverage}X`}
+                  </b>
                 </div>
                 <dl>
                   <div>
@@ -152,7 +161,7 @@ const productGroups = [
   <h2>기준일과 지연</h2>
   <p>
     현재가와 기준일을 함께 표시합니다. 상품과 본주 날짜가 다르면 최신 공통 거래일까지 분석하고,
-    평일 기준 2일 이상 지난 데이터는 ‘업데이트 지연’으로 표시합니다.
+    화면에는 사용한 종가 기준일을 YYYY-MM-DD 형식으로 표시합니다.
   </p>
 
   {
@@ -177,6 +186,18 @@ const productGroups = [
     display: block;
     margin-top: 4px;
     color: var(--yb-muted);
+  }
+
+  .leverage-value {
+    font-weight: 850;
+  }
+
+  .leverage-value.positive {
+    color: var(--yb-positive);
+  }
+
+  .leverage-value.negative {
+    color: var(--yb-negative);
   }
 
   @media (max-width: 700px) {
@@ -259,9 +280,15 @@ const productGroups = [
       flex: 0 0 auto;
       padding: 4px 9px;
       border-radius: 999px;
-      background: var(--yb-accent-soft);
-      color: var(--yb-accent-strong);
       font-size: 12px;
+    }
+
+    .product-card-heading b.positive {
+      background: var(--yb-positive-soft);
+    }
+
+    .product-card-heading b.negative {
+      background: var(--yb-negative-soft);
     }
 
     .product-card-list dl {
